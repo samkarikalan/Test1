@@ -148,7 +148,6 @@ function updatePlayerList() {
     <tr>
       <th>Name</th>
       <th>Gender</th>
-      <th>Active</th>
       <th>Action</th>
     </tr>
   `;
@@ -161,7 +160,10 @@ function updatePlayerList() {
 
     row.innerHTML = `
       <td>
-        <input type="text" value="${p.name}" ${disabledAttr} onchange="editPlayer(${i}, 'name', this.value)">
+        <input type="checkbox" ${p.active ? 'checked' : ''} 
+          onchange="editPlayer(${i}, 'active', this.checked)" style="margin-right: 0.5rem;">
+        <input type="text" value="${p.name}" ${disabledAttr} 
+          onchange="editPlayer(${i}, 'name', this.value)">
       </td>
 
       <td class="gender-cell">
@@ -178,11 +180,6 @@ function updatePlayerList() {
       </td>
 
       <td style="text-align:center;">
-        <input type="checkbox" ${p.active ? 'checked' : ''} 
-          onchange="editPlayer(${i}, 'active', this.checked)">
-      </td>
-
-      <td style="text-align:center;">
         <button class="delete-btn" onclick="deletePlayer(${i})">&times;</button>
       </td>
     `;
@@ -190,7 +187,6 @@ function updatePlayerList() {
     table.appendChild(row);
   });
 }
-
 /* =========================
    FIXED PAIRS MANAGEMENT
 ========================= */
