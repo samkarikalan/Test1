@@ -155,24 +155,35 @@ function updatePlayerList() {
 
   allPlayers.forEach((p, i) => {
     const row = document.createElement('tr');
-    if (!p.active) row.style.backgroundColor = '#ffd6d6'; // light red for inactive
+    if (!p.active) row.classList.add('inactive');
+
+    const disabledAttr = p.active ? '' : 'disabled';
 
     row.innerHTML = `
-      <td><input type="text" value="${p.name}" onchange="editPlayer(${i}, 'name', this.value)"></td>
-
       <td>
-        <select onchange="editPlayer(${i}, 'gender', this.value)">
-          <option value="Male" ${p.gender === 'Male' ? 'selected' : ''}>Male</option>
-          <option value="Female" ${p.gender === 'Female' ? 'selected' : ''}>Female</option>
-        </select>
+        <input type="text" value="${p.name}" ${disabledAttr} onchange="editPlayer(${i}, 'name', this.value)">
+      </td>
+
+      <td class="gender-cell">
+        <label class="gender-btn male">
+          <input type="radio" name="gender-${i}" value="Male" ${p.gender === 'Male' ? 'checked' : ''} 
+            ${disabledAttr} onchange="editPlayer(${i}, 'gender', 'Male')">
+          M
+        </label>
+        <label class="gender-btn female">
+          <input type="radio" name="gender-${i}" value="Female" ${p.gender === 'Female' ? 'checked' : ''} 
+            ${disabledAttr} onchange="editPlayer(${i}, 'gender', 'Female')">
+          F
+        </label>
       </td>
 
       <td style="text-align:center;">
-        <input type="checkbox" ${p.active ? 'checked' : ''} onchange="editPlayer(${i}, 'active', this.checked)">
+        <input type="checkbox" ${p.active ? 'checked' : ''} 
+          onchange="editPlayer(${i}, 'active', this.checked)">
       </td>
 
       <td style="text-align:center;">
-        <button class="delete-btn" onclick="deletePlayer(${i})">Del</button>
+        <button class="delete-btn" onclick="deletePlayer(${i})">&times;</button>
       </td>
     `;
 
