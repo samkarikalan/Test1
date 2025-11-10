@@ -388,6 +388,7 @@ h1 {
 #player-list-table td {
   border: 1px solid #ccc;
   padding: 6px;
+  font-size: 14px;
   vertical-align: middle;
 }
 
@@ -395,7 +396,7 @@ h1 {
 #player-list-table select {
   width: 90%;
   padding: 4px;
-  font-size: 14px;
+  font-size: 8px;
   box-sizing: border-box;
 }
 
@@ -411,7 +412,6 @@ h1 {
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
-  font-weight: bold;
   cursor: pointer;
 }
 
