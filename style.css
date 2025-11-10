@@ -494,6 +494,18 @@ h1 {
   background-color: #ffe5e5; /* light red for inactive */
   opacity: 0.7;
 }
+#player-list-table tr.inactive {
+  background-color: #ffe5e5;
+  opacity: 0.6;
+}
+
+#player-list-table tr.inactive input[type="text"],
+#player-list-table tr.inactive .gender-btn {
+  pointer-events: none;
+  filter: grayscale(100%);
+}
+
+
 /* Fixed Pairs */
 .fixed-pairs-list {
   margin-top: 0.5rem;
