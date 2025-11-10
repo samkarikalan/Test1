@@ -378,45 +378,121 @@ h1 {
 
 
 
+/* === TABLE BASE === */
 #player-list-table {
   width: 100%;
   border-collapse: collapse;
   text-align: center;
+  margin-top: 10px;
+  font-family: Arial, sans-serif;
 }
 
 #player-list-table th, 
 #player-list-table td {
   border: 1px solid #ccc;
-  padding: 6px;
-  font-size: 14px;
+  padding: 8px;
   vertical-align: middle;
 }
 
-#player-list-table input[type="text"],
-#player-list-table select {
-  width: 90%;
-  padding: 4px;
-  font-size: 8px;
+/* === NAME INPUT === */
+#player-list-table input[type="text"] {
+  width: 95%;
+  padding: 6px 8px;
+  font-size: 15px;
+  border: 1px solid #aaa;
+  border-radius: 6px;
   box-sizing: border-box;
+  text-align: center;
 }
 
+/* === CHECKBOX (Active/Inactive) === */
 #player-list-table input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  vertical-align: middle;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #800080; /* purple theme */
 }
 
+/* === DELETE BUTTON (X Button) === */
 .delete-btn {
-  background-color: #800080;
+  background-color: #ff4d4d;   /* soft red */
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 .delete-btn:hover {
-  background-color: #9a00a3;
+  background-color: #ff1a1a;   /* brighter red */
+  transform: scale(1.15);
+}
+
+.delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* === GENDER ROUND BUTTONS === */
+.gender-cell {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.gender-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: #333;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.1s;
+  user-select: none;
+  font-size: 14px;
+}
+
+/* Hide actual radio */
+.gender-btn input[type="radio"] {
+  display: none;
+}
+
+/* Hover effect */
+.gender-btn:hover {
+  background-color: #d0d0d0;
+  transform: scale(1.1);
+}
+
+/* === MALE (Blue) === */
+.gender-btn.male:has(input[type="radio"]:checked) {
+  background-color: #3498db;
+  color: white;
+  box-shadow: 0 0 6px rgba(52, 152, 219, 0.6);
+}
+
+/* === FEMALE (Pink) === */
+.gender-btn.female:has(input[type="radio"]:checked) {
+  background-color: #e91e63;
+  color: white;
+  box-shadow: 0 0 6px rgba(233, 30, 99, 0.6);
+}
+
+/* === INACTIVE PLAYER ROW === */
+#player-list-table tr.inactive {
+  background-color: #ffe5e5; /* light red for inactive */
+  opacity: 0.7;
 }
 /* Fixed Pairs */
 .fixed-pairs-list {
