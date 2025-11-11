@@ -380,6 +380,104 @@ h1 {
 
 /* === TABLE BASE === */
 
+/* General Table Styling */
+#player-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  margin-top: 10px;
+  font-family: Arial, sans-serif;
+}
+
+#player-list-table th, 
+#player-list-table td {
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  height: 32px; /* uniform row height */
+  vertical-align: middle;
+}
+
+/* Header row */
+#player-list-table th {
+  background-color: #f0f0f0;
+  font-weight: bold;
+}
+
+/* Inactive row */
+#player-list-table tr.inactive {
+  background-color: #f9f9f9;
+  color: #999;
+}
+
+/* Checkbox column */
+#player-list-table th:first-child,
+#player-list-table td:first-child {
+  width: 40px;
+}
+
+/* Name column */
+#player-list-table td:nth-child(2) {
+  text-align: left;
+  width: 60%;
+}
+
+/* Gender column */
+.gender-cell {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.gender-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+  user-select: none;
+}
+
+.gender-btn input {
+  display: none; /* hide the radio input */
+}
+
+.gender-btn.male {
+  background-color: #d0e7ff;
+}
+
+.gender-btn.female {
+  background-color: #ffd0d0;
+}
+
+.gender-btn input:checked + span,
+.gender-btn input:checked {
+  font-weight: bold;
+  border-bottom: 2px solid #333;
+}
+
+/* Delete button */
+.delete-btn {
+  background-color: #ff4d4d;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 1.1em;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background-color: #ff1a1a;
+}
+
+/* Select all checkbox at top */
+#select-all-checkbox {
+  cursor: pointer;
+}
+
 /* Table setup */
 
 
