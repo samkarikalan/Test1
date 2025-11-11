@@ -478,6 +478,16 @@ h1 {
   box-shadow: 0 0 6px rgba(233, 30, 99, 0.6);
 }
 
+#player-list-table tr.inactive {
+  background-color: #f0f0f0; /* light gray */
+  opacity: 0.8;
+}
+
+#player-list-table tr.inactive input[type="text"] {
+  background-color: #e0e0e0;
+  color: #666;
+  cursor: not-allowed;
+}
 /* Fixed Pairs */
 .fixed-pairs-list {
   margin-top: 0.5rem;
