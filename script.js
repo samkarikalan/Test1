@@ -147,8 +147,8 @@ function updatePlayerList() {
   table.innerHTML = `
     <tr>
       <th>Name</th>
-      <th>Gender</th>
-      <th>Action</th>
+      <th>M/F</th>
+      <th>Del</th>
     </tr>
   `;
 
@@ -159,14 +159,14 @@ function updatePlayerList() {
     const disabledAttr = p.active ? '' : 'disabled';
 
     row.innerHTML = `
-      <td>
+      <td style="display: flex; align-items: center; gap: 0.5rem; vertical-align: middle;">
         <input type="checkbox" ${p.active ? 'checked' : ''} 
-          onchange="editPlayer(${i}, 'active', this.checked)" style="margin-right: 0.5rem;">
+          onchange="editPlayer(${i}, 'active', this.checked)">
         <input type="text" value="${p.name}" ${disabledAttr} 
           onchange="editPlayer(${i}, 'name', this.value)">
       </td>
 
-      <td class="gender-cell">
+      <td class="gender-cell" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
         <label class="gender-btn male">
           <input type="radio" name="gender-${i}" value="Male" ${p.gender === 'Male' ? 'checked' : ''} 
             ${disabledAttr} onchange="editPlayer(${i}, 'gender', 'Male')">
@@ -179,7 +179,7 @@ function updatePlayerList() {
         </label>
       </td>
 
-      <td style="text-align:center;">
+      <td style="text-align:center; vertical-align: middle;">
         <button class="delete-btn" onclick="deletePlayer(${i})">&times;</button>
       </td>
     `;
