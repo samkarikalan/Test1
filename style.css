@@ -407,7 +407,7 @@ h1 {
   border: 1px solid #aaa;
   border-radius: 6px;
   box-sizing: border-box;
-  text-align: center;
+  text-align: left;
 }
 
 /* Checkbox */
