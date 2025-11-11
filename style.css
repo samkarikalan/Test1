@@ -391,14 +391,14 @@ h1 {
 #player-list-table th, 
 #player-list-table td {
   border: 1px solid #ccc;
-  padding: 8px;
+  padding: 2px;
   vertical-align: middle;
 }
 
 /* === NAME INPUT === */
 #player-list-table input[type="text"] {
   width: 95%;
-  padding: 6px 8px;
+  padding: 2px 2px;
   font-size: 15px;
   border: 1px solid #aaa;
   border-radius: 6px;
@@ -445,7 +445,7 @@ h1 {
 .gender-cell {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 2px;
 }
 
 .gender-btn {
