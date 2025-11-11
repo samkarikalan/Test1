@@ -494,6 +494,10 @@ h1 {
 #player-list-table tr.inactive {
   background-color: #ffe5e5; /* light red for inactive */
   opacity: 0.7;
+
+  #player-list-table td, #player-list-table th {
+  height: 28px; /* set uniform height */
+}
 }
 /* Fixed Pairs */
 .fixed-pairs-list {
