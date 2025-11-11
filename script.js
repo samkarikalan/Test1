@@ -146,7 +146,8 @@ function updatePlayerList() {
   const table = document.getElementById('player-list-table');
   table.innerHTML = `
     <tr>
-      <th><input type="checkbox" id="select-all-checkbox" onclick="toggleAllCheckboxes(this)"></th>
+      <th><input type="checkbox" id="select-all-checkbox" onchange="toggleAllCheckboxes(this)"></th>
+      
       <th>Name</th>
       <th>M/F</th>
       <th>Del</th>
@@ -193,6 +194,9 @@ function updatePlayerList() {
 
 // Function to toggle all checkboxes
 function toggleAllCheckboxes(masterCheckbox) {
+  // Only run if the checkbox exists and event came from it
+  if (!masterCheckbox || masterCheckbox.id !== 'select-all-checkbox') return;
+
   const checkboxes = document.querySelectorAll('#player-list-table td:first-child input[type="checkbox"]');
   checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
 }
