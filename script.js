@@ -164,7 +164,9 @@ function updatePlayerList() {
       </td>
       
       <td>
-        <input type="text" value="${p.name}" onchange="editPlayer(${i}, 'name', this.value)">
+        <input type="text" value="${p.name}" 
+          ${!p.active ? 'disabled' : ''} 
+          onchange="editPlayer(${i}, 'name', this.value)">
       </td>
 
       <td class="gender-cell">
@@ -190,7 +192,6 @@ function updatePlayerList() {
     table.appendChild(row);
   });
 }
-
 // Function to toggle all checkboxes
 function toggleAllCheckboxes(masterCheckbox) {
   // Only run if the checkbox exists and event came from it
