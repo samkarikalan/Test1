@@ -146,6 +146,7 @@ function updatePlayerList() {
   const table = document.getElementById('player-list-table');
   table.innerHTML = `
     <tr>
+      <th></th>
       <th>Name</th>
       <th>M/F</th>
       <th>Del</th>
@@ -154,32 +155,36 @@ function updatePlayerList() {
 
   allPlayers.forEach((p, i) => {
     const row = document.createElement('tr');
-    if (!p.active) row.classList.add('inactive');
-
-    const disabledAttr = p.active ? '' : 'disabled';
+    if (!p.active) row.classList.add('inactive'); // use CSS class for inactive style
 
     row.innerHTML = `
-      <td style="display: flex; align-items: center; gap: 0.5rem; vertical-align: middle;">
+      <td style="text-align:center;">
         <input type="checkbox" ${p.active ? 'checked' : ''} 
           onchange="editPlayer(${i}, 'active', this.checked)">
-        <input type="text" value="${p.name}" ${disabledAttr} 
-          onchange="editPlayer(${i}, 'name', this.value)">
+      </td>
+      
+      <td>
+        <input type="text" value="${p.name}" onchange="editPlayer(${i}, 'name', this.value)">
       </td>
 
-      <td class="gender-cell" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+      <td class="gender-cell">
         <label class="gender-btn male">
-          <input type="radio" name="gender-${i}" value="Male" ${p.gender === 'Male' ? 'checked' : ''} 
-            ${disabledAttr} onchange="editPlayer(${i}, 'gender', 'Male')">
+          <input type="radio" name="gender-${i}" value="Male" 
+            ${p.gender === 'Male' ? 'checked' : ''} 
+            onchange="editPlayer(${i}, 'gender', 'Male')">
           M
         </label>
         <label class="gender-btn female">
-          <input type="radio" name="gender-${i}" value="Female" ${p.gender === 'Female' ? 'checked' : ''} 
-            ${disabledAttr} onchange="editPlayer(${i}, 'gender', 'Female')">
+          <input type="radio" name="gender-${i}" value="Female" 
+            ${p.gender === 'Female' ? 'checked' : ''} 
+            onchange="editPlayer(${i}, 'gender', 'Female')">
           F
         </label>
       </td>
 
-      <td style="text-align:center; vertical-align: middle;">
+      
+
+      <td style="text-align:center;">
         <button class="delete-btn" onclick="deletePlayer(${i})">&times;</button>
       </td>
     `;
