@@ -146,8 +146,7 @@ function updatePlayerList() {
   const table = document.getElementById('player-list-table');
   table.innerHTML = `
     <tr>
-      <th><input type="checkbox" id="select-all-checkbox" onchange="toggleAllCheckboxes(this)"></th>
-      
+      <th></th>
       <th>Name</th>
       <th>M/F</th>
       <th>Del</th>
