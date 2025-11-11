@@ -146,7 +146,7 @@ function updatePlayerList() {
   const table = document.getElementById('player-list-table');
   table.innerHTML = `
     <tr>
-      <th></th>
+      <th><input type="checkbox" id="select-all-checkbox" onclick="toggleAllCheckboxes(this)"></th>
       <th>Name</th>
       <th>M/F</th>
       <th>Del</th>
@@ -155,7 +155,7 @@ function updatePlayerList() {
 
   allPlayers.forEach((p, i) => {
     const row = document.createElement('tr');
-    if (!p.active) row.classList.add('inactive'); // use CSS class for inactive style
+    if (!p.active) row.classList.add('inactive');
 
     row.innerHTML = `
       <td style="text-align:center;">
@@ -172,17 +172,15 @@ function updatePlayerList() {
           <input type="radio" name="gender-${i}" value="Male" 
             ${p.gender === 'Male' ? 'checked' : ''} 
             onchange="editPlayer(${i}, 'gender', 'Male')">
-          M
+          <span>M</span>
         </label>
         <label class="gender-btn female">
           <input type="radio" name="gender-${i}" value="Female" 
             ${p.gender === 'Female' ? 'checked' : ''} 
             onchange="editPlayer(${i}, 'gender', 'Female')">
-          F
+          <span>F</span>
         </label>
       </td>
-
-      
 
       <td style="text-align:center;">
         <button class="delete-btn" onclick="deletePlayer(${i})">&times;</button>
@@ -191,6 +189,12 @@ function updatePlayerList() {
 
     table.appendChild(row);
   });
+}
+
+// Function to toggle all checkboxes
+function toggleAllCheckboxes(masterCheckbox) {
+  const checkboxes = document.querySelectorAll('#player-list-table td:first-child input[type="checkbox"]');
+  checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
 }
 /* =========================
    FIXED PAIRS MANAGEMENT
