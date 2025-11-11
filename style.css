@@ -297,7 +297,7 @@ h1 {
   justify-content: center;
   align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.25rem;
   margin: 0.5rem;
   box-sizing: border-box;
   border-radius: 0.375rem;
@@ -393,7 +393,7 @@ h1 {
 #player-list-table th,
 #player-list-table td {
   border: 1px solid #ccc;
-  padding: 2px;
+  padding: 5px;
   vertical-align: middle;
   height: 36px; /* uniform row height */
 }
@@ -402,8 +402,8 @@ h1 {
 #player-list-table input[type="text"] {
   width: 95%;
   height: 28px; /* match row nicely */
-  padding: 2px;
-  font-size: 20px;
+  padding: 5px;
+  font-size: 1.25rem;
   border: 1px solid #aaa;
   border-radius: 6px;
   box-sizing: border-box;
@@ -423,8 +423,8 @@ h1 {
 .gender-cell {
   text-align: center;
   white-space: nowrap;
-  border-left: 1px solid #ccc;
-  border-right: 1px solid #ccc;
+  border-left: 2px solid #ccc;
+  border-right: 2px solid #ccc;
   border-bottom: 1px solid #ccc;
   padding: 0;
 }
