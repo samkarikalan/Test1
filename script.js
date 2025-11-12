@@ -1111,15 +1111,33 @@ matchupScores.push({ pair1: allPairs[i], pair2: allPairs[j], score: totalScore }
 
  
 
- 
+ const allNew =
+  (opponentMap.get(a1).get(b1) || 0) === 0 &&
+  (opponentMap.get(a1).get(b2) || 0) === 0 &&
+  (opponentMap.get(a2).get(b1) || 0) === 0 &&
+  (opponentMap.get(a2).get(b2) || 0) === 0;
 
- 
+matchupScores.push({
+  pair1: allPairs[i],
+  pair2: allPairs[j],
+  score: totalScore,
+  allNew: allNew
+});
+
+ matchupScores.sort((a, b) => {
+  // all-new opponents have highest priority
+  if (a.allNew && !b.allNew) return -1;
+  if (!a.allNew && b.allNew) return 1;
+
+  // then by total opponent score
+  return a.score - b.score;
+});
 
 // Sort to prioritize pairs who faced least
 
  
 
-matchupScores.sort((a, b) => a.score - b.score);
+//matchupScores.sort((a, b) => a.score - b.score);
 
  
 
