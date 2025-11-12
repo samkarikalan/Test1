@@ -279,6 +279,9 @@ function removeFixedPair(el, p1, p2) {
       schedulerState.numCourts = numCourts;
       schedulerState.fixedPairs = fixedPairs;
       schedulerState.restCount = new Map(playersList.map(p => [p, 0]));
+      schedulerState.PlayerScoreMap = new Map(playersList.map(p => [p, 0]));
+
+ 
       schedulerState.playedTogether = new Map();
       schedulerState.fixedMap = new Map();
       schedulerState.pairPlayedSet = new Set();
@@ -424,9 +427,930 @@ function removeFixedPair(el, p1, p2) {
 
 
 
+ 
 
 
-    function AischedulerNextRound() {
+
+ 
+
+function AischedulerNextRound() {
+
+ 
+
+const {
+
+ 
+
+players,
+
+ 
+
+numCourts,
+
+ 
+
+fixedPairs,
+
+ 
+
+restCount,
+
+ 
+
+playedTogether,
+
+ 
+
+fixedMap,
+
+ 
+
+pairPlayedSet,
+
+PlayerScoreMap,
+
+ 
+
+opponentMap,
+
+ 
+
+} = schedulerState;
+
+ 
+
+ 
+
+ 
+
+const totalPlayers = players.length;
+
+ 
+
+const numPlayersPerRound = numCourts * 4;
+
+ 
+
+let numResting = Math.max(totalPlayers - numPlayersPerRound, 0);
+
+ 
+
+ 
+
+ 
+
+schedulerState.roundIndex = (schedulerState.roundIndex || 0) + 1;
+
+ 
+
+const roundIdx = schedulerState.roundIndex;
+
+ 
+
+ 
+
+ 
+
+const totalPossiblePairs = (players.length * (players.length - 1)) / 2;
+
+ 
+
+if (pairPlayedSet.size >= totalPossiblePairs) {
+
+ 
+
+pairPlayedSet.clear();
+
+ 
+
+playedTogether.clear();
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+const fixedPairPlayers = new Set(fixedPairs.flat());
+
+ 
+
+let freePlayers = players.filter(p => !fixedPairPlayers.has(p));
+
+ 
+
+ 
+
+ 
+
+let resting = [];
+
+ 
+
+let playing = [];
+
+ 
+
+ 
+
+ 
+
+if (fixedPairPlayers.size > 0 && numResting > 1) {
+
+ 
+
+// Example threshold: prioritize fixed pairs if there are at least as many as free players
+
+ 
+
+let possiblePlayers;
+
+ 
+
+if (fixedPairPlayers.size >= freePlayers.length) {
+
+ 
+
+// Prioritize fixed pair players, then free players
+
+ 
+
+possiblePlayers = [...fixedPairPlayers, ...freePlayers];
+
+ 
+
+} else {
+
+ 
+
+// Prioritize free players, then fixed pair players
+
+ 
+
+possiblePlayers = [...freePlayers, ...fixedPairPlayers];
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// 1. Sort possiblePlayers by rest count
+
+ 
+
+let sortedPlayers = [...possiblePlayers].sort((a, b) => (restCount.get(a) || 0) - (restCount.get(b) || 0));
+
+ 
+
+ 
+
+ 
+
+// 2. Select resting players (never split a fixed pair)
+
+ 
+
+let i = 0;
+
+ 
+
+while (resting.length < numResting && i < sortedPlayers.length) {
+
+ 
+
+let p = sortedPlayers[i];
+
+ 
+
+if (fixedMap.has(p)) {
+
+ 
+
+let partner = fixedMap.get(p);
+
+ 
+
+if (!resting.includes(partner)) {
+
+ 
+
+// Only add both if slots allow and partner is in possiblePlayers
+
+ 
+
+if (resting.length <= numResting - 2 && possiblePlayers.includes(partner)) {
+
+ 
+
+resting.push(p, partner);
+
+ 
+
+}
+
+ 
+
+// else skip both
+
+ 
+
+}
+
+ 
+
+} else {
+
+ 
+
+resting.push(p);
+
+ 
+
+}
+
+ 
+
+i++;
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// 3. Final playing list (everyone else)
+
+ 
+
+playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
+
+ 
+
+ 
+
+ 
+
+// 4. Ensure no fixed pair is split between rest and play
+
+ 
+
+for (const p of playing) {
+
+ 
+
+if (fixedMap.has(p)) {
+
+ 
+
+const partner = fixedMap.get(p);
+
+ 
+
+if (resting.includes(partner)) {
+
+ 
+
+// Remove both from resting, add both to playing
+
+ 
+
+resting = resting.filter(x => x !== partner && x !== p);
+
+ 
+
+playing.push(partner);
+
+ 
+
+playing.push(p);
+
+ 
+
+}
+
+ 
+
+}
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// Remove duplicates from playing, limit to numPlayersPerRound
+
+ 
+
+playing = [...new Set(playing)].slice(0, numPlayersPerRound);
+
+ 
+
+ 
+
+ 
+
+} else {
+
+// ⚖️ Sort players by how often they've rested (low first)
+
+let sortedPlayers = [...players].sort((a, b) =>
+
+(restCount.get(a) || 0) - (restCount.get(b) || 0)
+
+);
+
+ 
+
+// 💤 Select players to rest
+
+resting = sortedPlayers.slice(0, numResting);
+
+ 
+
+// 🎾 Remaining players play
+
+playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
+
+}
+
+ 
+
+ 
+
+ 
+
+// 5️⃣ Prepare pairs
+
+ 
+
+const playingSet = new Set(playing);
+
+ 
+
+let fixedPairsThisRound = [];
+
+ 
+
+for (const pair of fixedPairs) {
+
+ 
+
+if (playingSet.has(pair[0]) && playingSet.has(pair[1])) fixedPairsThisRound.push([pair[0], pair[1]]);
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+const fixedPairPlayersThisRound = new Set(fixedPairsThisRound.flat());
+
+ 
+
+let freePlayersThisRound = playing.filter(p => !fixedPairPlayersThisRound.has(p));
+
+ 
+
+ 
+
+ 
+
+const requiredPairsCount = Math.floor(numPlayersPerRound / 2);
+
+ 
+
+let neededFreePairs = requiredPairsCount - fixedPairsThisRound.length;
+
+ 
+
+ 
+
+ 
+
+let selectedPairs = findDisjointPairs(freePlayersThisRound, pairPlayedSet, neededFreePairs);
+
+ 
+
+let finalFreePairs = selectedPairs;
+
+ 
+
+ 
+
+ 
+
+if (!finalFreePairs || finalFreePairs.length < neededFreePairs) {
+
+ 
+
+const free = freePlayersThisRound.slice();
+
+ 
+
+const usedPlayers = new Set();
+
+ 
+
+finalFreePairs = [];
+
+ 
+
+for (let i = 0; i < free.length; i++) {
+
+ 
+
+const a = free[i];
+
+ 
+
+if (usedPlayers.has(a)) continue;
+
+ 
+
+let chosenIdx = -1;
+
+ 
+
+for (let j = i + 1; j < free.length; j++) {
+
+ 
+
+const b = free[j];
+
+ 
+
+if (usedPlayers.has(b)) continue;
+
+ 
+
+const key = [a, b].slice().sort().join("&");
+
+ 
+
+if (!pairPlayedSet.has(key)) {
+
+ 
+
+chosenIdx = j;
+
+ 
+
+break;
+
+ 
+
+}
+
+ 
+
+if (chosenIdx === -1) chosenIdx = j;
+
+ 
+
+}
+
+ 
+
+if (chosenIdx !== -1) {
+
+ 
+
+const b = free[chosenIdx];
+
+ 
+
+finalFreePairs.push([a, b]);
+
+ 
+
+usedPlayers.add(a);
+
+ 
+
+usedPlayers.add(b);
+
+ 
+
+}
+
+ 
+
+if (finalFreePairs.length === neededFreePairs) break;
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+if (finalFreePairs.length < neededFreePairs) {
+
+ 
+
+const leftovers = freePlayersThisRound.filter(p => !usedPlayers.has(p));
+
+ 
+
+for (let i = 0; i + 1 < leftovers.length && finalFreePairs.length < neededFreePairs; i += 2) {
+
+ 
+
+finalFreePairs.push([leftovers[i], leftovers[i + 1]]);
+
+ 
+
+}
+
+ 
+
+}
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// 6️⃣ Combine all pairs
+
+ 
+
+let allPairs = fixedPairsThisRound.concat(finalFreePairs);
+
+ 
+
+ 
+
+ 
+
+// 7️⃣ Shuffle for randomness
+
+ 
+
+allPairs = shuffle(allPairs);
+
+ 
+
+// Sort pairs by their lowest member's PlayerScoreMap
+
+allPairs = allPairs
+
+  .map(pair => ({
+
+    pair,
+
+    score: Math.min(PlayerScoreMap.get(pair[0]) || 0, PlayerScoreMap.get(pair[1]) || 0)
+
+  }))
+
+  .sort((a, b) => a.score - b.score)
+
+  .map(obj => obj.pair);
+
+ 
+
+ 
+
+ 
+
+// 🆕 8️⃣ Fair opponent balancing using opponentMap
+
+ 
+
+let matchupScores = [];
+
+ 
+
+for (let i = 0; i < allPairs.length; i++) {
+
+ 
+
+for (let j = i + 1; j < allPairs.length; j++) {
+
+ 
+
+const [a1, a2] = allPairs[i];
+
+ 
+
+const [b1, b2] = allPairs[j];
+
+ 
+
+ 
+
+ 
+
+// Total times these 4 players have faced each other
+
+ 
+
+const totalScore =
+
+ 
+
+(opponentMap.get(a1).get(b1) || 0) +
+
+ 
+
+(opponentMap.get(a1).get(b2) || 0) +
+
+ 
+
+(opponentMap.get(a2).get(b1) || 0) +
+
+ 
+
+(opponentMap.get(a2).get(b2) || 0);
+
+ 
+
+ 
+
+ 
+
+matchupScores.push({ pair1: allPairs[i], pair2: allPairs[j], score: totalScore });
+
+ 
+
+}
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// Sort to prioritize pairs who faced least
+
+ 
+
+matchupScores.sort((a, b) => a.score - b.score);
+
+ 
+
+ 
+
+ 
+
+const games = [];
+
+ 
+
+const usedPairs = new Set();
+
+ 
+
+ 
+
+ 
+
+for (const match of matchupScores) {
+
+ 
+
+const { pair1, pair2 } = match;
+
+ 
+
+const p1Key = pair1.join("&");
+
+ 
+
+const p2Key = pair2.join("&");
+
+ 
+
+if (usedPairs.has(p1Key) || usedPairs.has(p2Key)) continue;
+
+ 
+
+ 
+
+ 
+
+games.push({ court: games.length + 1, pair1: [...pair1], pair2: [...pair2] });
+
+ 
+
+usedPairs.add(p1Key);
+
+ 
+
+usedPairs.add(p2Key);
+
+ 
+
+ 
+
+ 
+
+// Update opponent counts
+
+ 
+
+for (const a of pair1) {
+
+ 
+
+for (const b of pair2) {
+
+ 
+
+opponentMap.get(a).set(b, (opponentMap.get(a).get(b) || 0) + 1);
+
+ 
+
+opponentMap.get(b).set(a, (opponentMap.get(b).get(a) || 0) + 1);
+
+ 
+
+}
+
+ 
+
+}
+
+ 
+
+// 🆕 Update PlayerScoreMap
+
+for (const a of pair1) {
+
+    let newOpponents = 0;
+
+    for (const b of pair2) {
+
+        if ((opponentMap.get(a).get(b) || 0) === 1) { // Use === 1, since opponentMap was just incremented
+
+            newOpponents += 1;
+
+        }
+
+    }
+
+    let score = (newOpponents === 2) ? 2 : (newOpponents === 1 ? 1 : 0);
+
+    PlayerScoreMap.set(a, (PlayerScoreMap.get(a) || 0) + score);
+
+}
+
+for (const b of pair2) {
+
+    let newOpponents = 0;
+
+    for (const a of pair1) {
+
+        if ((opponentMap.get(b).get(a) || 0) === 1) {
+
+            newOpponents += 1;
+
+        }
+
+    }
+
+    let score = (newOpponents === 2) ? 2 : (newOpponents === 1 ? 1 : 0);
+
+    PlayerScoreMap.set(b, (PlayerScoreMap.get(b) || 0) + score);
+
+}
+
+ 
+
+ 
+
+ 
+
+if (games.length >= numCourts) break;
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// 9️⃣ Track pairs played together
+
+ 
+
+for (const pr of allPairs) {
+
+ 
+
+const key = pr.slice().sort().join("&");
+
+ 
+
+pairPlayedSet.add(key);
+
+ 
+
+playedTogether.set(key, roundIdx);
+
+ 
+
+}
+
+ 
+
+ 
+
+ 
+
+// 🔟 Update resting counts
+
+ 
+
+const restingWithNumber = resting.map(p => {
+
+ 
+
+restCount.set(p, (restCount.get(p) || 0) + 1);
+
+ 
+
+return `${p}#${restCount.get(p)}`;
+
+ 
+
+});
+
+ 
+
+ 
+
+ 
+
+return {
+
+ 
+
+round: roundIdx,
+
+ 
+
+resting: restingWithNumber,
+
+ 
+
+playing,
+
+ 
+
+games,
+
+ 
+
+};
+
+ 
+
+}
+
+ 
+
+
+
+
+    function AischedulerNextRoundold() {
 
       const {
 
