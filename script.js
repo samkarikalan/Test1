@@ -1,72 +1,72 @@
 
 
-    /* =========================
-    
-    GLOBAL STATE & INITIALIZATION
-    
-    ========================= */
-    let allPlayers = [];
-    let players = [];
+/* =========================
+ 
+GLOBAL STATE & INITIALIZATION
+ 
+========================= */
+let allPlayers = [];
+let players = [];
 
-    let fixedPairs = [];
+let fixedPairs = [];
 
-    let allRounds = [];
+let allRounds = [];
 
-    let currentRoundIndex = 0;
-
-
-
-
-    let schedulerState = {
-      players: [],
-      numCourts: 0,
-      fixedPairs: [],
-      restCount: new Map(),
-      playedTogether: new Map(),
-      fixedMap: new Map(),
-      roundIndex: 0,
-      pairPlayedSet: new Set(),
-      opponentMap: new Map(), // 🆕 per-player opponent tracking
-    };
-
-
-    let isOnPage2 = false;
+let currentRoundIndex = 0;
 
 
 
-    // Page initialization
 
-    function initPage() {
+let schedulerState = {
+  players: [],
+  numCourts: 0,
+  fixedPairs: [],
+  restCount: new Map(),
+  playedTogether: new Map(),
+  fixedMap: new Map(),
+  roundIndex: 0,
+  pairPlayedSet: new Set(),
+  opponentMap: new Map(), // 🆕 per-player opponent tracking
+};
 
-      document.getElementById("page1").style.display = 'block';
 
-      document.getElementById("page2").style.display = 'none';
-
-    }
+let isOnPage2 = false;
 
 
 
-    /* =========================
-    
-    PLAYER MANAGEMENT
-    
-    ========================= */
+// Page initialization
 
-    function showImportModal() {
+function initPage() {
 
-      document.getElementById('importModal').style.display = 'block';
+  document.getElementById("page1").style.display = 'block';
 
-    }
+  document.getElementById("page2").style.display = 'none';
 
-    function hideImportModal() {
+}
 
-      document.getElementById('importModal').style.display = 'none';
 
-      document.getElementById('players-textarea').value = '';
 
-    }
+/* =========================
+ 
+PLAYER MANAGEMENT
+ 
+========================= */
 
-   
+function showImportModal() {
+
+  document.getElementById('importModal').style.display = 'block';
+
+}
+
+function hideImportModal() {
+
+  document.getElementById('importModal').style.display = 'none';
+
+  document.getElementById('players-textarea').value = '';
+
+}
+
+
 
 /* =========================
    ADD PLAYERS FROM TEXT
@@ -268,1530 +268,1487 @@ function removeFixedPair(el, p1, p2) {
 
 
 
-    /* =========================
-    
-    SCHEDULER INIT & PAIR GENERATION
-    
-    ========================= */
-
-    function initScheduler(playersList, numCourts, fixedPairs = []) {
-      schedulerState.players = [...playersList].reverse();
-      schedulerState.numCourts = numCourts;
-      schedulerState.fixedPairs = fixedPairs;
-      schedulerState.restCount = new Map(playersList.map(p => [p, 0]));
-      schedulerState.PlayerScoreMap = new Map(playersList.map(p => [p, 0]));
-
+/* =========================
  
-      schedulerState.playedTogether = new Map();
-      schedulerState.fixedMap = new Map();
-      schedulerState.pairPlayedSet = new Set();
-      schedulerState.roundIndex = 0;
-
-      // 🆕 Initialize opponentMap — nested map for opponent counts
-      schedulerState.opponentMap = new Map();
-      for (const p1 of playersList) {
-        const innerMap = new Map();
-        for (const p2 of playersList) {
-          if (p1 !== p2) innerMap.set(p2, 0); // start all counts at 0
-        }
-        schedulerState.opponentMap.set(p1, innerMap);
-      }
-
-      // Map each fixed pair for quick lookup
-      fixedPairs.forEach(([a, b]) => {
-        schedulerState.fixedMap.set(a, b);
-        schedulerState.fixedMap.set(b, a);
-      });
-    }
-
-
-    function updateScheduler(playersList) {
-      schedulerState.opponentMap = new Map();
-      for (const p1 of playersList) {
-        const innerMap = new Map();
-        for (const p2 of playersList) {
-          if (p1 !== p2) innerMap.set(p2, 0); // start all counts at 0
-        }
-        schedulerState.opponentMap.set(p1, innerMap);
-      }
-    }
-
-
-
-    function shuffle(array) {
-
-      for (let i = array.length - 1; i > 0; i--) {
-
-        const j = Math.floor(Math.random() * (i + 1));
-
-        [array[i], array[j]] = [array[j], array[i]];
-
-      }
-
-      return array;
-
-    }
-
-    function findDisjointPairs(playing, usedPairsSet, requiredPairsCount) {
-
-      const allPairs = [];
-
-      const unusedPairs = [];
-
-      const usedPairs = [];
-
-      for (let i = 0; i < playing.length; i++) {
-
-        for (let j = i + 1; j < playing.length; j++) {
-
-          const a = playing[i], b = playing[j];
-
-          const key = [a, b].slice().sort().join("&");
-
-          allPairs.push({ a, b, key });
-
-          if (!usedPairsSet || !usedPairsSet.has(key)) unusedPairs.push({ a, b, key });
-
-          else usedPairs.push({ a, b, key });
-
-        }
-
-      }
-
-      function backtrack(candidates) {
-
-        const result = [];
-
-        const usedPlayers = new Set();
-
-        function dfs(start) {
-
-          if (result.length === requiredPairsCount) return true;
-
-          for (let i = start; i < candidates.length; i++) {
-
-            const { a, b } = candidates[i];
-
-            if (usedPlayers.has(a) || usedPlayers.has(b)) continue;
-
-            usedPlayers.add(a); usedPlayers.add(b);
-
-            result.push([a, b]);
-
-            if (dfs(i + 1)) return true;
-
-            result.pop();
-
-            usedPlayers.delete(a); usedPlayers.delete(b);
-
-          }
-
-          return false;
-
-        }
-
-        return dfs(0) ? result.slice() : null;
-
-      }
-
-      if (unusedPairs.length >= requiredPairsCount) {
-
-        const res = backtrack(unusedPairs);
-
-        if (res && res.length === requiredPairsCount) return res;
-
-      }
-
-      const combined = [...unusedPairs, ...usedPairs];
-
-      if (combined.length >= requiredPairsCount) {
-
-        const res = backtrack(combined);
-
-        if (res && res.length === requiredPairsCount) return res;
-
-      }
-
-      if (allPairs.length >= requiredPairsCount) {
-
-        const res = backtrack(allPairs);
-
-        if (res && res.length === requiredPairsCount) return res;
-
-      }
-
-      return [];
-
-    }
-
-
-
-
+SCHEDULER INIT & PAIR GENERATION
  
+========================= */
+
+function initScheduler(playersList, numCourts, fixedPairs = []) {
+  schedulerState.players = [...playersList].reverse();
+  schedulerState.numCourts = numCourts;
+  schedulerState.fixedPairs = fixedPairs;
+  schedulerState.restCount = new Map(playersList.map(p => [p, 0]));
+  schedulerState.PlayerScoreMap = new Map(playersList.map(p => [p, 0]));
+
+
+  schedulerState.playedTogether = new Map();
+  schedulerState.fixedMap = new Map();
+  schedulerState.pairPlayedSet = new Set();
+  schedulerState.roundIndex = 0;
+
+  // 🆕 Initialize opponentMap — nested map for opponent counts
+  schedulerState.opponentMap = new Map();
+  for (const p1 of playersList) {
+    const innerMap = new Map();
+    for (const p2 of playersList) {
+      if (p1 !== p2) innerMap.set(p2, 0); // start all counts at 0
+    }
+    schedulerState.opponentMap.set(p1, innerMap);
+  }
+
+  // Map each fixed pair for quick lookup
+  fixedPairs.forEach(([a, b]) => {
+    schedulerState.fixedMap.set(a, b);
+    schedulerState.fixedMap.set(b, a);
+  });
+}
+
+
+function updateScheduler(playersList) {
+  schedulerState.opponentMap = new Map();
+  for (const p1 of playersList) {
+    const innerMap = new Map();
+    for (const p2 of playersList) {
+      if (p1 !== p2) innerMap.set(p2, 0); // start all counts at 0
+    }
+    schedulerState.opponentMap.set(p1, innerMap);
+  }
+}
 
 
 
- 
+function shuffle(array) {
+
+  for (let i = array.length - 1; i > 0; i--) {
+
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [array[i], array[j]] = [array[j], array[i]];
+
+  }
+
+  return array;
+
+}
+
+function findDisjointPairs(playing, usedPairsSet, requiredPairsCount) {
+
+  const allPairs = [];
+
+  const unusedPairs = [];
+
+  const usedPairs = [];
+
+  for (let i = 0; i < playing.length; i++) {
+
+    for (let j = i + 1; j < playing.length; j++) {
+
+      const a = playing[i], b = playing[j];
+
+      const key = [a, b].slice().sort().join("&");
+
+      allPairs.push({ a, b, key });
+
+      if (!usedPairsSet || !usedPairsSet.has(key)) unusedPairs.push({ a, b, key });
+
+      else usedPairs.push({ a, b, key });
+
+    }
+
+  }
+
+  function backtrack(candidates) {
+
+    const result = [];
+
+    const usedPlayers = new Set();
+
+    function dfs(start) {
+
+      if (result.length === requiredPairsCount) return true;
+
+      for (let i = start; i < candidates.length; i++) {
+
+        const { a, b } = candidates[i];
+
+        if (usedPlayers.has(a) || usedPlayers.has(b)) continue;
+
+        usedPlayers.add(a); usedPlayers.add(b);
+
+        result.push([a, b]);
+
+        if (dfs(i + 1)) return true;
+
+        result.pop();
+
+        usedPlayers.delete(a); usedPlayers.delete(b);
+
+      }
+
+      return false;
+
+    }
+
+    return dfs(0) ? result.slice() : null;
+
+  }
+
+  if (unusedPairs.length >= requiredPairsCount) {
+
+    const res = backtrack(unusedPairs);
+
+    if (res && res.length === requiredPairsCount) return res;
+
+  }
+
+  const combined = [...unusedPairs, ...usedPairs];
+
+  if (combined.length >= requiredPairsCount) {
+
+    const res = backtrack(combined);
+
+    if (res && res.length === requiredPairsCount) return res;
+
+  }
+
+  if (allPairs.length >= requiredPairsCount) {
+
+    const res = backtrack(allPairs);
+
+    if (res && res.length === requiredPairsCount) return res;
+
+  }
+
+  return [];
+
+}
+
+
+
+
+
+
+
+
+
 
 function AischedulerNextRound() {
 
- 
 
-const {
 
- 
+  const {
 
-players,
 
- 
 
-numCourts,
+    players,
 
- 
 
-fixedPairs,
 
- 
+    numCourts,
 
-restCount,
 
- 
 
-playedTogether,
+    fixedPairs,
 
- 
 
-fixedMap,
 
- 
+    restCount,
 
-pairPlayedSet,
 
-PlayerScoreMap,
 
- 
+    playedTogether,
 
-opponentMap,
 
- 
 
-} = schedulerState;
+    fixedMap,
 
- 
 
- 
 
- 
+    pairPlayedSet,
 
-const totalPlayers = players.length;
+    PlayerScoreMap,
 
- 
 
-const numPlayersPerRound = numCourts * 4;
 
- 
+    opponentMap,
 
-let numResting = Math.max(totalPlayers - numPlayersPerRound, 0);
 
- 
 
- 
+  } = schedulerState;
 
- 
 
-schedulerState.roundIndex = (schedulerState.roundIndex || 0) + 1;
 
- 
 
-const roundIdx = schedulerState.roundIndex;
 
- 
 
- 
 
- 
+  const totalPlayers = players.length;
 
-const totalPossiblePairs = (players.length * (players.length - 1)) / 2;
 
- 
 
-if (pairPlayedSet.size >= totalPossiblePairs) {
+  const numPlayersPerRound = numCourts * 4;
 
- 
 
-pairPlayedSet.clear();
 
- 
+  let numResting = Math.max(totalPlayers - numPlayersPerRound, 0);
 
-playedTogether.clear();
 
- 
 
-}
 
- 
 
- 
 
- 
 
-const fixedPairPlayers = new Set(fixedPairs.flat());
+  schedulerState.roundIndex = (schedulerState.roundIndex || 0) + 1;
 
- 
 
-let freePlayers = players.filter(p => !fixedPairPlayers.has(p));
 
- 
+  const roundIdx = schedulerState.roundIndex;
 
- 
 
- 
 
-let resting = [];
 
- 
 
-let playing = [];
 
- 
 
- 
+  const totalPossiblePairs = (players.length * (players.length - 1)) / 2;
 
- 
 
-if (fixedPairPlayers.size > 0 && numResting > 1) {
 
- 
+  if (pairPlayedSet.size >= totalPossiblePairs) {
 
-// Example threshold: prioritize fixed pairs if there are at least as many as free players
 
- 
 
-let possiblePlayers;
+    pairPlayedSet.clear();
 
- 
 
-if (fixedPairPlayers.size >= freePlayers.length) {
 
- 
+    playedTogether.clear();
 
-// Prioritize fixed pair players, then free players
 
- 
 
-possiblePlayers = [...fixedPairPlayers, ...freePlayers];
+  }
 
- 
 
-} else {
 
- 
 
-// Prioritize free players, then fixed pair players
 
- 
 
-possiblePlayers = [...freePlayers, ...fixedPairPlayers];
 
- 
+  const fixedPairPlayers = new Set(fixedPairs.flat());
 
-}
 
- 
 
- 
+  let freePlayers = players.filter(p => !fixedPairPlayers.has(p));
 
- 
 
-// 1. Sort possiblePlayers by rest count
 
- 
 
-let sortedPlayers = [...possiblePlayers].sort((a, b) => (restCount.get(a) || 0) - (restCount.get(b) || 0));
 
- 
 
- 
 
- 
+  let resting = [];
 
-// 2. Select resting players (never split a fixed pair)
 
- 
 
-let i = 0;
+  let playing = [];
 
- 
 
-while (resting.length < numResting && i < sortedPlayers.length) {
 
- 
 
-let p = sortedPlayers[i];
 
- 
 
-if (fixedMap.has(p)) {
 
- 
+  if (fixedPairPlayers.size > 0 && numResting > 1) {
 
-let partner = fixedMap.get(p);
 
- 
 
-if (!resting.includes(partner)) {
+    // Example threshold: prioritize fixed pairs if there are at least as many as free players
 
- 
 
-// Only add both if slots allow and partner is in possiblePlayers
 
- 
+    let possiblePlayers;
 
-if (resting.length <= numResting - 2 && possiblePlayers.includes(partner)) {
 
- 
 
-resting.push(p, partner);
+    if (fixedPairPlayers.size >= freePlayers.length) {
 
- 
 
-}
 
- 
+      // Prioritize fixed pair players, then free players
 
-// else skip both
 
- 
 
-}
+      possiblePlayers = [...fixedPairPlayers, ...freePlayers];
 
- 
 
-} else {
 
- 
+    } else {
 
-resting.push(p);
 
- 
 
-}
+      // Prioritize free players, then fixed pair players
 
- 
 
-i++;
 
- 
+      possiblePlayers = [...freePlayers, ...fixedPairPlayers];
 
-}
 
- 
-
- 
-
- 
-
-// 3. Final playing list (everyone else)
-
- 
-
-playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
-
- 
-
- 
-
- 
-
-// 4. Ensure no fixed pair is split between rest and play
-
- 
-
-for (const p of playing) {
-
- 
-
-if (fixedMap.has(p)) {
-
- 
-
-const partner = fixedMap.get(p);
-
- 
-
-if (resting.includes(partner)) {
-
- 
-
-// Remove both from resting, add both to playing
-
- 
-
-resting = resting.filter(x => x !== partner && x !== p);
-
- 
-
-playing.push(partner);
-
- 
-
-playing.push(p);
-
- 
-
-}
-
- 
-
-}
-
- 
-
-}
-
- 
-
- 
-
- 
-
-// Remove duplicates from playing, limit to numPlayersPerRound
-
- 
-
-playing = [...new Set(playing)].slice(0, numPlayersPerRound);
-
- 
-
- 
-
- 
-
-} else {
-
-// ⚖️ Sort players by how often they've rested (low first)
-
-let sortedPlayers = [...players].sort((a, b) =>
-
-(restCount.get(a) || 0) - (restCount.get(b) || 0)
-
-);
-
- 
-
-// 💤 Select players to rest
-
-resting = sortedPlayers.slice(0, numResting);
-
- 
-
-// 🎾 Remaining players play
-
-playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
-
-}
-
- 
-
- 
-
- 
-
-// 5️⃣ Prepare pairs
-
- 
-
-const playingSet = new Set(playing);
-
- 
-
-let fixedPairsThisRound = [];
-
- 
-
-for (const pair of fixedPairs) {
-
- 
-
-if (playingSet.has(pair[0]) && playingSet.has(pair[1])) fixedPairsThisRound.push([pair[0], pair[1]]);
-
- 
-
-}
-
- 
-
- 
-
- 
-
-const fixedPairPlayersThisRound = new Set(fixedPairsThisRound.flat());
-
- 
-
-let freePlayersThisRound = playing.filter(p => !fixedPairPlayersThisRound.has(p));
-
- 
-
- 
-
- 
-
-const requiredPairsCount = Math.floor(numPlayersPerRound / 2);
-
- 
-
-let neededFreePairs = requiredPairsCount - fixedPairsThisRound.length;
-
- 
-
- 
-
- 
-
-let selectedPairs = findDisjointPairs(freePlayersThisRound, pairPlayedSet, neededFreePairs);
-
- 
-
-let finalFreePairs = selectedPairs;
-
- 
-
- 
-
- 
-
-if (!finalFreePairs || finalFreePairs.length < neededFreePairs) {
-
- 
-
-const free = freePlayersThisRound.slice();
-
- 
-
-const usedPlayers = new Set();
-
- 
-
-finalFreePairs = [];
-
- 
-
-for (let i = 0; i < free.length; i++) {
-
- 
-
-const a = free[i];
-
- 
-
-if (usedPlayers.has(a)) continue;
-
- 
-
-let chosenIdx = -1;
-
- 
-
-for (let j = i + 1; j < free.length; j++) {
-
- 
-
-const b = free[j];
-
- 
-
-if (usedPlayers.has(b)) continue;
-
- 
-
-const key = [a, b].slice().sort().join("&");
-
- 
-
-if (!pairPlayedSet.has(key)) {
-
- 
-
-chosenIdx = j;
-
- 
-
-break;
-
- 
-
-}
-
- 
-
-if (chosenIdx === -1) chosenIdx = j;
-
- 
-
-}
-
- 
-
-if (chosenIdx !== -1) {
-
- 
-
-const b = free[chosenIdx];
-
- 
-
-finalFreePairs.push([a, b]);
-
- 
-
-usedPlayers.add(a);
-
- 
-
-usedPlayers.add(b);
-
- 
-
-}
-
- 
-
-if (finalFreePairs.length === neededFreePairs) break;
-
- 
-
-}
-
- 
-
- 
-
- 
-
-if (finalFreePairs.length < neededFreePairs) {
-
- 
-
-const leftovers = freePlayersThisRound.filter(p => !usedPlayers.has(p));
-
- 
-
-for (let i = 0; i + 1 < leftovers.length && finalFreePairs.length < neededFreePairs; i += 2) {
-
- 
-
-finalFreePairs.push([leftovers[i], leftovers[i + 1]]);
-
- 
-
-}
-
- 
-
-}
-
- 
-
-}
-
- 
-
- 
-
- 
-
-// 6️⃣ Combine all pairs
-
- 
-
-let allPairs = fixedPairsThisRound.concat(finalFreePairs);
-
- 
-
- 
-
- 
-
-// 7️⃣ Shuffle for randomness
-
- 
-
-allPairs = shuffle(allPairs);
-
- 
-
-// Sort pairs by their lowest member's PlayerScoreMap
-
-allPairs = allPairs
-
-  .map(pair => ({
-
-    pair,
-
-    score: Math.min(PlayerScoreMap.get(pair[0]) || 0, PlayerScoreMap.get(pair[1]) || 0)
-
-  }))
-
-  .sort((a, b) => a.score - b.score)
-
-  .map(obj => obj.pair);
-
- 
-
- 
-
- 
-
-// 🆕 8️⃣ Fair opponent balancing using opponentMap
-
- 
-
-let matchupScores = [];
-
- 
-
-for (let i = 0; i < allPairs.length; i++) {
-
- 
-
-for (let j = i + 1; j < allPairs.length; j++) {
-
- 
-
-const [a1, a2] = allPairs[i];
-
- 
-
-const [b1, b2] = allPairs[j];
-
- 
-
- 
-
- 
-
-// Total times these 4 players have faced each other
-
- 
-
-const totalScore =
-
- 
-
-(opponentMap.get(a1).get(b1) || 0) +
-
- 
-
-(opponentMap.get(a1).get(b2) || 0) +
-
- 
-
-(opponentMap.get(a2).get(b1) || 0) +
-
- 
-
-(opponentMap.get(a2).get(b2) || 0);
-
- 
-
- 
-
- 
-
-matchupScores.push({ pair1: allPairs[i], pair2: allPairs[j], score: totalScore });
-
- 
-
-}
-
- 
-
-}
-
- 
-
- const allNew =
-  (opponentMap.get(a1).get(b1) || 0) === 0 &&
-  (opponentMap.get(a1).get(b2) || 0) === 0 &&
-  (opponentMap.get(a2).get(b1) || 0) === 0 &&
-  (opponentMap.get(a2).get(b2) || 0) === 0;
-
-matchupScores.push({
-  pair1: allPairs[i],
-  pair2: allPairs[j],
-  score: totalScore,
-  allNew: allNew
-});
-
- matchupScores.sort((a, b) => {
-  // all-new opponents have highest priority
-  if (a.allNew && !b.allNew) return -1;
-  if (!a.allNew && b.allNew) return 1;
-
-  // then by total opponent score
-  return a.score - b.score;
-});
-
-// Sort to prioritize pairs who faced least
-
- 
-
-//matchupScores.sort((a, b) => a.score - b.score);
-
- 
-
- 
-
- 
-
-const games = [];
-
- 
-
-const usedPairs = new Set();
-
- 
-
- 
-
- 
-
-for (const match of matchupScores) {
-
- 
-
-const { pair1, pair2 } = match;
-
- 
-
-const p1Key = pair1.join("&");
-
- 
-
-const p2Key = pair2.join("&");
-
- 
-
-if (usedPairs.has(p1Key) || usedPairs.has(p2Key)) continue;
-
- 
-
- 
-
- 
-
-games.push({ court: games.length + 1, pair1: [...pair1], pair2: [...pair2] });
-
- 
-
-usedPairs.add(p1Key);
-
- 
-
-usedPairs.add(p2Key);
-
- 
-
- 
-
- 
-
-// Update opponent counts
-
- 
-
-for (const a of pair1) {
-
- 
-
-for (const b of pair2) {
-
- 
-
-opponentMap.get(a).set(b, (opponentMap.get(a).get(b) || 0) + 1);
-
- 
-
-opponentMap.get(b).set(a, (opponentMap.get(b).get(a) || 0) + 1);
-
- 
-
-}
-
- 
-
-}
-
- 
-
-// 🆕 Update PlayerScoreMap
-
-for (const a of pair1) {
-
-    let newOpponents = 0;
-
-    for (const b of pair2) {
-
-        if ((opponentMap.get(a).get(b) || 0) === 1) { // Use === 1, since opponentMap was just incremented
-
-            newOpponents += 1;
-
-        }
 
     }
 
-    let score = (newOpponents === 2) ? 2 : (newOpponents === 1 ? 1 : 0);
 
-    PlayerScoreMap.set(a, (PlayerScoreMap.get(a) || 0) + score);
 
-}
 
-for (const b of pair2) {
 
-    let newOpponents = 0;
 
-    for (const a of pair1) {
 
-        if ((opponentMap.get(b).get(a) || 0) === 1) {
+    // 1. Sort possiblePlayers by rest count
 
-            newOpponents += 1;
 
-        }
 
-    }
+    let sortedPlayers = [...possiblePlayers].sort((a, b) => (restCount.get(a) || 0) - (restCount.get(b) || 0));
 
-    let score = (newOpponents === 2) ? 2 : (newOpponents === 1 ? 1 : 0);
 
-    PlayerScoreMap.set(b, (PlayerScoreMap.get(b) || 0) + score);
 
-}
 
- 
 
- 
 
- 
 
-if (games.length >= numCourts) break;
+    // 2. Select resting players (never split a fixed pair)
 
- 
 
-}
 
- 
+    let i = 0;
 
- 
 
- 
 
-// 9️⃣ Track pairs played together
+    while (resting.length < numResting && i < sortedPlayers.length) {
 
- 
 
-for (const pr of allPairs) {
 
- 
+      let p = sortedPlayers[i];
 
-const key = pr.slice().sort().join("&");
 
- 
 
-pairPlayedSet.add(key);
+      if (fixedMap.has(p)) {
 
- 
 
-playedTogether.set(key, roundIdx);
 
- 
+        let partner = fixedMap.get(p);
 
-}
 
- 
 
- 
+        if (!resting.includes(partner)) {
 
- 
 
-// 🔟 Update resting counts
 
- 
+          // Only add both if slots allow and partner is in possiblePlayers
 
-const restingWithNumber = resting.map(p => {
 
- 
 
-restCount.set(p, (restCount.get(p) || 0) + 1);
+          if (resting.length <= numResting - 2 && possiblePlayers.includes(partner)) {
 
- 
 
-return `${p}#${restCount.get(p)}`;
 
- 
+            resting.push(p, partner);
 
-});
 
- 
-
- 
-
- 
-
-return {
-
- 
-
-round: roundIdx,
-
- 
-
-resting: restingWithNumber,
-
- 
-
-playing,
-
- 
-
-games,
-
- 
-
-};
-
- 
-
-}
-
- 
-
-
-
-
-    function AischedulerNextRoundold() {
-
-      const {
-
-        players,
-
-        numCourts,
-
-        fixedPairs,
-
-        restCount,
-
-        playedTogether,
-
-        fixedMap,
-
-        pairPlayedSet,
-
-        opponentMap,
-
-      } = schedulerState;
-
-
-
-      const totalPlayers = players.length;
-
-      const numPlayersPerRound = numCourts * 4;
-
-      let numResting = Math.max(totalPlayers - numPlayersPerRound, 0);
-
-
-
-      schedulerState.roundIndex = (schedulerState.roundIndex || 0) + 1;
-
-      const roundIdx = schedulerState.roundIndex;
-
-
-
-      const totalPossiblePairs = (players.length * (players.length - 1)) / 2;
-
-      if (pairPlayedSet.size >= totalPossiblePairs) {
-
-        pairPlayedSet.clear();
-
-        playedTogether.clear();
-
-      }
-
-
-
-      const fixedPairPlayers = new Set(fixedPairs.flat());
-
-      let freePlayers = players.filter(p => !fixedPairPlayers.has(p));
-
-
-
-      let resting = [];
-
-      let playing = [];
-
-
-
-      if (fixedPairPlayers.size > 0 && numResting > 1) {
-
-        // Example threshold: prioritize fixed pairs if there are at least as many as free players
-
-        let possiblePlayers;
-
-        if (fixedPairPlayers.size >= freePlayers.length) {
-
-          // Prioritize fixed pair players, then free players
-
-          possiblePlayers = [...fixedPairPlayers, ...freePlayers];
-
-        } else {
-
-          // Prioritize free players, then fixed pair players
-
-          possiblePlayers = [...freePlayers, ...fixedPairPlayers];
-
-        }
-
-
-
-        // 1. Sort possiblePlayers by rest count
-
-        let sortedPlayers = [...possiblePlayers].sort((a, b) => (restCount.get(a) || 0) - (restCount.get(b) || 0));
-
-
-
-        // 2. Select resting players (never split a fixed pair)
-
-        let i = 0;
-
-        while (resting.length < numResting && i < sortedPlayers.length) {
-
-          let p = sortedPlayers[i];
-
-          if (fixedMap.has(p)) {
-
-            let partner = fixedMap.get(p);
-
-            if (!resting.includes(partner)) {
-
-              // Only add both if slots allow and partner is in possiblePlayers
-
-              if (resting.length <= numResting - 2 && possiblePlayers.includes(partner)) {
-
-                resting.push(p, partner);
-
-              }
-
-              // else skip both
-
-            }
-
-          } else {
-
-            resting.push(p);
 
           }
 
-          i++;
+
+
+          // else skip both
+
+
 
         }
-
-
-
-        // 3. Final playing list (everyone else)
-
-        playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
-
-
-
-        // 4. Ensure no fixed pair is split between rest and play
-
-        for (const p of playing) {
-
-          if (fixedMap.has(p)) {
-
-            const partner = fixedMap.get(p);
-
-            if (resting.includes(partner)) {
-
-              // Remove both from resting, add both to playing
-
-              resting = resting.filter(x => x !== partner && x !== p);
-
-              playing.push(partner);
-
-              playing.push(p);
-
-            }
-
-          }
-
-        }
-
-
-
-        // Remove duplicates from playing, limit to numPlayersPerRound
-
-        playing = [...new Set(playing)].slice(0, numPlayersPerRound);
 
 
 
       } else {
-        // ⚖️ Sort players by how often they've rested (low first)
-        let sortedPlayers = [...players].sort((a, b) =>
-          (restCount.get(a) || 0) - (restCount.get(b) || 0)
-        );
-
-        // 💤 Select players to rest
-        resting = sortedPlayers.slice(0, numResting);
-
-        // 🎾 Remaining players play
-        playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
-      }
 
 
 
-      // 5️⃣ Prepare pairs
+        resting.push(p);
 
-      const playingSet = new Set(playing);
 
-      let fixedPairsThisRound = [];
-
-      for (const pair of fixedPairs) {
-
-        if (playingSet.has(pair[0]) && playingSet.has(pair[1])) fixedPairsThisRound.push([pair[0], pair[1]]);
 
       }
 
 
 
-      const fixedPairPlayersThisRound = new Set(fixedPairsThisRound.flat());
+      i++;
 
-      let freePlayersThisRound = playing.filter(p => !fixedPairPlayersThisRound.has(p));
 
-
-
-      const requiredPairsCount = Math.floor(numPlayersPerRound / 2);
-
-      let neededFreePairs = requiredPairsCount - fixedPairsThisRound.length;
-
-
-
-      let selectedPairs = findDisjointPairs(freePlayersThisRound, pairPlayedSet, neededFreePairs);
-
-      let finalFreePairs = selectedPairs;
-
-
-
-      if (!finalFreePairs || finalFreePairs.length < neededFreePairs) {
-
-        const free = freePlayersThisRound.slice();
-
-        const usedPlayers = new Set();
-
-        finalFreePairs = [];
-
-        for (let i = 0; i < free.length; i++) {
-
-          const a = free[i];
-
-          if (usedPlayers.has(a)) continue;
-
-          let chosenIdx = -1;
-
-          for (let j = i + 1; j < free.length; j++) {
-
-            const b = free[j];
-
-            if (usedPlayers.has(b)) continue;
-
-            const key = [a, b].slice().sort().join("&");
-
-            if (!pairPlayedSet.has(key)) {
-
-              chosenIdx = j;
-
-              break;
-
-            }
-
-            if (chosenIdx === -1) chosenIdx = j;
-
-          }
-
-          if (chosenIdx !== -1) {
-
-            const b = free[chosenIdx];
-
-            finalFreePairs.push([a, b]);
-
-            usedPlayers.add(a);
-
-            usedPlayers.add(b);
-
-          }
-
-          if (finalFreePairs.length === neededFreePairs) break;
-
-        }
-
-
-
-        if (finalFreePairs.length < neededFreePairs) {
-
-          const leftovers = freePlayersThisRound.filter(p => !usedPlayers.has(p));
-
-          for (let i = 0; i + 1 < leftovers.length && finalFreePairs.length < neededFreePairs; i += 2) {
-
-            finalFreePairs.push([leftovers[i], leftovers[i + 1]]);
-
-          }
-
-        }
-
-      }
-
-
-
-      // 6️⃣ Combine all pairs
-
-      let allPairs = fixedPairsThisRound.concat(finalFreePairs);
-
-
-
-      // 7️⃣ Shuffle for randomness
-
-      allPairs = shuffle(allPairs);
-
-
-
-      // 🆕 8️⃣ Fair opponent balancing using opponentMap
-
-      let matchupScores = [];
-
-      for (let i = 0; i < allPairs.length; i++) {
-
-        for (let j = i + 1; j < allPairs.length; j++) {
-
-          const [a1, a2] = allPairs[i];
-
-          const [b1, b2] = allPairs[j];
-
-
-
-          // Total times these 4 players have faced each other
-
-          const totalScore =
-
-            (opponentMap.get(a1).get(b1) || 0) +
-
-            (opponentMap.get(a1).get(b2) || 0) +
-
-            (opponentMap.get(a2).get(b1) || 0) +
-
-            (opponentMap.get(a2).get(b2) || 0);
-
-
-
-          matchupScores.push({ pair1: allPairs[i], pair2: allPairs[j], score: totalScore });
-
-        }
-
-      }
-
-
-
-      // Sort to prioritize pairs who faced least
-
-      matchupScores.sort((a, b) => a.score - b.score);
-
-
-
-      const games = [];
-
-      const usedPairs = new Set();
-
-
-
-      for (const match of matchupScores) {
-
-        const { pair1, pair2 } = match;
-
-        const p1Key = pair1.join("&");
-
-        const p2Key = pair2.join("&");
-
-        if (usedPairs.has(p1Key) || usedPairs.has(p2Key)) continue;
-
-
-
-        games.push({ court: games.length + 1, pair1: [...pair1], pair2: [...pair2] });
-
-        usedPairs.add(p1Key);
-
-        usedPairs.add(p2Key);
-
-
-
-        // Update opponent counts
-
-        for (const a of pair1) {
-
-          for (const b of pair2) {
-
-            opponentMap.get(a).set(b, (opponentMap.get(a).get(b) || 0) + 1);
-
-            opponentMap.get(b).set(a, (opponentMap.get(b).get(a) || 0) + 1);
-
-          }
-
-        }
-
-
-
-        if (games.length >= numCourts) break;
-
-      }
-
-
-
-      // 9️⃣ Track pairs played together
-
-      for (const pr of allPairs) {
-
-        const key = pr.slice().sort().join("&");
-
-        pairPlayedSet.add(key);
-
-        playedTogether.set(key, roundIdx);
-
-      }
-
-
-
-      // 🔟 Update resting counts
-
-      const restingWithNumber = resting.map(p => {
-
-        restCount.set(p, (restCount.get(p) || 0) + 1);
-
-        return `${p}#${restCount.get(p)}`;
-
-      });
-
-
-
-      return {
-
-        round: roundIdx,
-
-        resting: restingWithNumber,
-
-        playing,
-
-        games,
-
-      };
 
     }
+
+
+
+
+
+
+
+    // 3. Final playing list (everyone else)
+
+
+
+    playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
+
+
+
+
+
+
+
+    // 4. Ensure no fixed pair is split between rest and play
+
+
+
+    for (const p of playing) {
+
+
+
+      if (fixedMap.has(p)) {
+
+
+
+        const partner = fixedMap.get(p);
+
+
+
+        if (resting.includes(partner)) {
+
+
+
+          // Remove both from resting, add both to playing
+
+
+
+          resting = resting.filter(x => x !== partner && x !== p);
+
+
+
+          playing.push(partner);
+
+
+
+          playing.push(p);
+
+
+
+        }
+
+
+
+      }
+
+
+
+    }
+
+
+
+
+
+
+
+    // Remove duplicates from playing, limit to numPlayersPerRound
+
+
+
+    playing = [...new Set(playing)].slice(0, numPlayersPerRound);
+
+
+
+
+
+
+
+  } else {
+
+    // ⚖️ Sort players by how often they've rested (low first)
+
+    let sortedPlayers = [...players].sort((a, b) =>
+
+      (restCount.get(a) || 0) - (restCount.get(b) || 0)
+
+    );
+
+
+
+    // 💤 Select players to rest
+
+    resting = sortedPlayers.slice(0, numResting);
+
+
+
+    // 🎾 Remaining players play
+
+    playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
+
+  }
+
+
+
+
+
+
+
+  // 5️⃣ Prepare pairs
+
+
+
+  const playingSet = new Set(playing);
+
+
+
+  let fixedPairsThisRound = [];
+
+
+
+  for (const pair of fixedPairs) {
+
+
+
+    if (playingSet.has(pair[0]) && playingSet.has(pair[1])) fixedPairsThisRound.push([pair[0], pair[1]]);
+
+
+
+  }
+
+
+
+
+
+
+
+  const fixedPairPlayersThisRound = new Set(fixedPairsThisRound.flat());
+
+
+
+  let freePlayersThisRound = playing.filter(p => !fixedPairPlayersThisRound.has(p));
+
+
+
+
+
+
+
+  const requiredPairsCount = Math.floor(numPlayersPerRound / 2);
+
+
+
+  let neededFreePairs = requiredPairsCount - fixedPairsThisRound.length;
+
+
+
+
+
+
+
+  let selectedPairs = findDisjointPairs(freePlayersThisRound, pairPlayedSet, neededFreePairs);
+
+
+
+  let finalFreePairs = selectedPairs;
+
+
+
+
+
+
+
+  if (!finalFreePairs || finalFreePairs.length < neededFreePairs) {
+
+
+
+    const free = freePlayersThisRound.slice();
+
+
+
+    const usedPlayers = new Set();
+
+
+
+    finalFreePairs = [];
+
+
+
+    for (let i = 0; i < free.length; i++) {
+
+
+
+      const a = free[i];
+
+
+
+      if (usedPlayers.has(a)) continue;
+
+
+
+      let chosenIdx = -1;
+
+
+
+      for (let j = i + 1; j < free.length; j++) {
+
+
+
+        const b = free[j];
+
+
+
+        if (usedPlayers.has(b)) continue;
+
+
+
+        const key = [a, b].slice().sort().join("&");
+
+
+
+        if (!pairPlayedSet.has(key)) {
+
+
+
+          chosenIdx = j;
+
+
+
+          break;
+
+
+
+        }
+
+
+
+        if (chosenIdx === -1) chosenIdx = j;
+
+
+
+      }
+
+
+
+      if (chosenIdx !== -1) {
+
+
+
+        const b = free[chosenIdx];
+
+
+
+        finalFreePairs.push([a, b]);
+
+
+
+        usedPlayers.add(a);
+
+
+
+        usedPlayers.add(b);
+
+
+
+      }
+
+
+
+      if (finalFreePairs.length === neededFreePairs) break;
+
+
+
+    }
+
+
+
+
+
+
+
+    if (finalFreePairs.length < neededFreePairs) {
+
+
+
+      const leftovers = freePlayersThisRound.filter(p => !usedPlayers.has(p));
+
+
+
+      for (let i = 0; i + 1 < leftovers.length && finalFreePairs.length < neededFreePairs; i += 2) {
+
+
+
+        finalFreePairs.push([leftovers[i], leftovers[i + 1]]);
+
+
+
+      }
+
+
+
+    }
+
+
+
+  }
+
+
+
+
+
+
+
+  // 6️⃣ Combine all pairs
+
+
+
+  let allPairs = fixedPairsThisRound.concat(finalFreePairs);
+
+
+
+
+
+
+
+  // 7️⃣ Shuffle for randomness
+
+
+
+  allPairs = shuffle(allPairs);
+
+
+
+  // Sort pairs by their lowest member's PlayerScoreMap
+
+  allPairs = allPairs
+
+    .map(pair => ({
+
+      pair,
+
+      score: Math.min(PlayerScoreMap.get(pair[0]) || 0, PlayerScoreMap.get(pair[1]) || 0)
+
+    }))
+
+    .sort((a, b) => a.score - b.score)
+
+    .map(obj => obj.pair);
+
+
+
+
+
+
+
+  // 🆕 8️⃣ Fair opponent balancing using opponentMap
+
+
+
+  let matchupScores = [];
+
+  for (let i = 0; i < allPairs.length; i++) {
+    for (let j = i + 1; j < allPairs.length; j++) {
+      const [a1, a2] = allPairs[i];
+      const [b1, b2] = allPairs[j];
+
+      // Total times these 4 players have faced each other
+      const totalScore =
+        (opponentMap.get(a1)?.get(b1) || 0) +
+        (opponentMap.get(a1)?.get(b2) || 0) +
+        (opponentMap.get(a2)?.get(b1) || 0) +
+        (opponentMap.get(a2)?.get(b2) || 0);
+
+      // Check if all matchups are completely new (no previous encounters)
+      const allNew =
+        (opponentMap.get(a1)?.get(b1) || 0) === 0 &&
+        (opponentMap.get(a1)?.get(b2) || 0) === 0 &&
+        (opponentMap.get(a2)?.get(b1) || 0) === 0 &&
+        (opponentMap.get(a2)?.get(b2) || 0) === 0;
+
+      matchupScores.push({
+        pair1: allPairs[i],
+        pair2: allPairs[j],
+        score: totalScore,
+        allNew: allNew,
+      });
+    }
+  }
+
+
+
+
+
+  matchupScores.sort((a, b) => {
+    // all-new opponents have highest priority
+    if (a.allNew && !b.allNew) return -1;
+    if (!a.allNew && b.allNew) return 1;
+
+    // then by total opponent score
+    return a.score - b.score;
+  });
+
+  // Sort to prioritize pairs who faced least
+
+
+
+  //matchupScores.sort((a, b) => a.score - b.score);
+
+
+
+
+
+
+
+  const games = [];
+
+
+
+  const usedPairs = new Set();
+
+
+
+
+
+
+
+  for (const match of matchupScores) {
+
+
+
+    const { pair1, pair2 } = match;
+
+
+
+    const p1Key = pair1.join("&");
+
+
+
+    const p2Key = pair2.join("&");
+
+
+
+    if (usedPairs.has(p1Key) || usedPairs.has(p2Key)) continue;
+
+
+
+
+
+
+
+    games.push({ court: games.length + 1, pair1: [...pair1], pair2: [...pair2] });
+
+
+
+    usedPairs.add(p1Key);
+
+
+
+    usedPairs.add(p2Key);
+
+
+
+
+
+
+
+    // Update opponent counts
+
+
+
+    for (const a of pair1) {
+
+
+
+      for (const b of pair2) {
+
+
+
+        opponentMap.get(a).set(b, (opponentMap.get(a).get(b) || 0) + 1);
+
+
+
+        opponentMap.get(b).set(a, (opponentMap.get(b).get(a) || 0) + 1);
+
+
+
+      }
+
+
+
+    }
+
+
+
+    // 🆕 Update PlayerScoreMap
+
+    for (const a of pair1) {
+
+      let newOpponents = 0;
+
+      for (const b of pair2) {
+
+        if ((opponentMap.get(a).get(b) || 0) === 1) { // Use === 1, since opponentMap was just incremented
+
+          newOpponents += 1;
+
+        }
+
+      }
+
+      let score = (newOpponents === 2) ? 2 : (newOpponents === 1 ? 1 : 0);
+
+      PlayerScoreMap.set(a, (PlayerScoreMap.get(a) || 0) + score);
+
+    }
+
+    for (const b of pair2) {
+
+      let newOpponents = 0;
+
+      for (const a of pair1) {
+
+        if ((opponentMap.get(b).get(a) || 0) === 1) {
+
+          newOpponents += 1;
+
+        }
+
+      }
+
+      let score = (newOpponents === 2) ? 2 : (newOpponents === 1 ? 1 : 0);
+
+      PlayerScoreMap.set(b, (PlayerScoreMap.get(b) || 0) + score);
+
+    }
+
+
+
+
+
+
+
+    if (games.length >= numCourts) break;
+
+
+
+  }
+
+
+
+
+
+
+
+  // 9️⃣ Track pairs played together
+
+
+
+  for (const pr of allPairs) {
+
+
+
+    const key = pr.slice().sort().join("&");
+
+
+
+    pairPlayedSet.add(key);
+
+
+
+    playedTogether.set(key, roundIdx);
+
+
+
+  }
+
+
+
+
+
+
+
+  // 🔟 Update resting counts
+
+
+
+  const restingWithNumber = resting.map(p => {
+
+
+
+    restCount.set(p, (restCount.get(p) || 0) + 1);
+
+
+
+    return `${p}#${restCount.get(p)}`;
+
+
+
+  });
+
+
+
+
+
+
+
+  return {
+
+
+
+    round: roundIdx,
+
+
+
+    resting: restingWithNumber,
+
+
+
+    playing,
+
+
+
+    games,
+
+
+
+  };
+
+
+
+}
+
+
+
+
+
+
+function AischedulerNextRoundold() {
+
+  const {
+
+    players,
+
+    numCourts,
+
+    fixedPairs,
+
+    restCount,
+
+    playedTogether,
+
+    fixedMap,
+
+    pairPlayedSet,
+
+    opponentMap,
+
+  } = schedulerState;
+
+
+
+  const totalPlayers = players.length;
+
+  const numPlayersPerRound = numCourts * 4;
+
+  let numResting = Math.max(totalPlayers - numPlayersPerRound, 0);
+
+
+
+  schedulerState.roundIndex = (schedulerState.roundIndex || 0) + 1;
+
+  const roundIdx = schedulerState.roundIndex;
+
+
+
+  const totalPossiblePairs = (players.length * (players.length - 1)) / 2;
+
+  if (pairPlayedSet.size >= totalPossiblePairs) {
+
+    pairPlayedSet.clear();
+
+    playedTogether.clear();
+
+  }
+
+
+
+  const fixedPairPlayers = new Set(fixedPairs.flat());
+
+  let freePlayers = players.filter(p => !fixedPairPlayers.has(p));
+
+
+
+  let resting = [];
+
+  let playing = [];
+
+
+
+  if (fixedPairPlayers.size > 0 && numResting > 1) {
+
+    // Example threshold: prioritize fixed pairs if there are at least as many as free players
+
+    let possiblePlayers;
+
+    if (fixedPairPlayers.size >= freePlayers.length) {
+
+      // Prioritize fixed pair players, then free players
+
+      possiblePlayers = [...fixedPairPlayers, ...freePlayers];
+
+    } else {
+
+      // Prioritize free players, then fixed pair players
+
+      possiblePlayers = [...freePlayers, ...fixedPairPlayers];
+
+    }
+
+
+
+    // 1. Sort possiblePlayers by rest count
+
+    let sortedPlayers = [...possiblePlayers].sort((a, b) => (restCount.get(a) || 0) - (restCount.get(b) || 0));
+
+
+
+    // 2. Select resting players (never split a fixed pair)
+
+    let i = 0;
+
+    while (resting.length < numResting && i < sortedPlayers.length) {
+
+      let p = sortedPlayers[i];
+
+      if (fixedMap.has(p)) {
+
+        let partner = fixedMap.get(p);
+
+        if (!resting.includes(partner)) {
+
+          // Only add both if slots allow and partner is in possiblePlayers
+
+          if (resting.length <= numResting - 2 && possiblePlayers.includes(partner)) {
+
+            resting.push(p, partner);
+
+          }
+
+          // else skip both
+
+        }
+
+      } else {
+
+        resting.push(p);
+
+      }
+
+      i++;
+
+    }
+
+
+
+    // 3. Final playing list (everyone else)
+
+    playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
+
+
+
+    // 4. Ensure no fixed pair is split between rest and play
+
+    for (const p of playing) {
+
+      if (fixedMap.has(p)) {
+
+        const partner = fixedMap.get(p);
+
+        if (resting.includes(partner)) {
+
+          // Remove both from resting, add both to playing
+
+          resting = resting.filter(x => x !== partner && x !== p);
+
+          playing.push(partner);
+
+          playing.push(p);
+
+        }
+
+      }
+
+    }
+
+
+
+    // Remove duplicates from playing, limit to numPlayersPerRound
+
+    playing = [...new Set(playing)].slice(0, numPlayersPerRound);
+
+
+
+  } else {
+    // ⚖️ Sort players by how often they've rested (low first)
+    let sortedPlayers = [...players].sort((a, b) =>
+      (restCount.get(a) || 0) - (restCount.get(b) || 0)
+    );
+
+    // 💤 Select players to rest
+    resting = sortedPlayers.slice(0, numResting);
+
+    // 🎾 Remaining players play
+    playing = players.filter(p => !resting.includes(p)).slice(0, numPlayersPerRound);
+  }
+
+
+
+  // 5️⃣ Prepare pairs
+
+  const playingSet = new Set(playing);
+
+  let fixedPairsThisRound = [];
+
+  for (const pair of fixedPairs) {
+
+    if (playingSet.has(pair[0]) && playingSet.has(pair[1])) fixedPairsThisRound.push([pair[0], pair[1]]);
+
+  }
+
+
+
+  const fixedPairPlayersThisRound = new Set(fixedPairsThisRound.flat());
+
+  let freePlayersThisRound = playing.filter(p => !fixedPairPlayersThisRound.has(p));
+
+
+
+  const requiredPairsCount = Math.floor(numPlayersPerRound / 2);
+
+  let neededFreePairs = requiredPairsCount - fixedPairsThisRound.length;
+
+
+
+  let selectedPairs = findDisjointPairs(freePlayersThisRound, pairPlayedSet, neededFreePairs);
+
+  let finalFreePairs = selectedPairs;
+
+
+
+  if (!finalFreePairs || finalFreePairs.length < neededFreePairs) {
+
+    const free = freePlayersThisRound.slice();
+
+    const usedPlayers = new Set();
+
+    finalFreePairs = [];
+
+    for (let i = 0; i < free.length; i++) {
+
+      const a = free[i];
+
+      if (usedPlayers.has(a)) continue;
+
+      let chosenIdx = -1;
+
+      for (let j = i + 1; j < free.length; j++) {
+
+        const b = free[j];
+
+        if (usedPlayers.has(b)) continue;
+
+        const key = [a, b].slice().sort().join("&");
+
+        if (!pairPlayedSet.has(key)) {
+
+          chosenIdx = j;
+
+          break;
+
+        }
+
+        if (chosenIdx === -1) chosenIdx = j;
+
+      }
+
+      if (chosenIdx !== -1) {
+
+        const b = free[chosenIdx];
+
+        finalFreePairs.push([a, b]);
+
+        usedPlayers.add(a);
+
+        usedPlayers.add(b);
+
+      }
+
+      if (finalFreePairs.length === neededFreePairs) break;
+
+    }
+
+
+
+    if (finalFreePairs.length < neededFreePairs) {
+
+      const leftovers = freePlayersThisRound.filter(p => !usedPlayers.has(p));
+
+      for (let i = 0; i + 1 < leftovers.length && finalFreePairs.length < neededFreePairs; i += 2) {
+
+        finalFreePairs.push([leftovers[i], leftovers[i + 1]]);
+
+      }
+
+    }
+
+  }
+
+
+
+  // 6️⃣ Combine all pairs
+
+  let allPairs = fixedPairsThisRound.concat(finalFreePairs);
+
+
+
+  // 7️⃣ Shuffle for randomness
+
+  allPairs = shuffle(allPairs);
+
+
+
+  // 🆕 8️⃣ Fair opponent balancing using opponentMap
+
+  let matchupScores = [];
+
+  for (let i = 0; i < allPairs.length; i++) {
+
+    for (let j = i + 1; j < allPairs.length; j++) {
+
+      const [a1, a2] = allPairs[i];
+
+      const [b1, b2] = allPairs[j];
+
+
+
+      // Total times these 4 players have faced each other
+
+      const totalScore =
+
+        (opponentMap.get(a1).get(b1) || 0) +
+
+        (opponentMap.get(a1).get(b2) || 0) +
+
+        (opponentMap.get(a2).get(b1) || 0) +
+
+        (opponentMap.get(a2).get(b2) || 0);
+
+
+
+      matchupScores.push({ pair1: allPairs[i], pair2: allPairs[j], score: totalScore });
+
+    }
+
+  }
+
+
+
+  // Sort to prioritize pairs who faced least
+
+  matchupScores.sort((a, b) => a.score - b.score);
+
+
+
+  const games = [];
+
+  const usedPairs = new Set();
+
+
+
+  for (const match of matchupScores) {
+
+    const { pair1, pair2 } = match;
+
+    const p1Key = pair1.join("&");
+
+    const p2Key = pair2.join("&");
+
+    if (usedPairs.has(p1Key) || usedPairs.has(p2Key)) continue;
+
+
+
+    games.push({ court: games.length + 1, pair1: [...pair1], pair2: [...pair2] });
+
+    usedPairs.add(p1Key);
+
+    usedPairs.add(p2Key);
+
+
+
+    // Update opponent counts
+
+    for (const a of pair1) {
+
+      for (const b of pair2) {
+
+        opponentMap.get(a).set(b, (opponentMap.get(a).get(b) || 0) + 1);
+
+        opponentMap.get(b).set(a, (opponentMap.get(b).get(a) || 0) + 1);
+
+      }
+
+    }
+
+
+
+    if (games.length >= numCourts) break;
+
+  }
+
+
+
+  // 9️⃣ Track pairs played together
+
+  for (const pr of allPairs) {
+
+    const key = pr.slice().sort().join("&");
+
+    pairPlayedSet.add(key);
+
+    playedTogether.set(key, roundIdx);
+
+  }
+
+
+
+  // 🔟 Update resting counts
+
+  const restingWithNumber = resting.map(p => {
+
+    restCount.set(p, (restCount.get(p) || 0) + 1);
+
+    return `${p}#${restCount.get(p)}`;
+
+  });
+
+
+
+  return {
+
+    round: roundIdx,
+
+    resting: restingWithNumber,
+
+    playing,
+
+    games,
+
+  };
+
+}
 
 function scheduleSingleCourt(players, fixedPairs, pairPlayedSet, playedTogether, opponentMap, restCount, roundIdx) {
   let chosenPairs = [];
@@ -1881,15 +1838,15 @@ function scheduleSingleCourt(players, fixedPairs, pairPlayedSet, playedTogether,
   };
 }
 
-    /* =========================
-    
-    DISPLAY & UI FUNCTIONS
-    
-    ========================= */
+/* =========================
+ 
+DISPLAY & UI FUNCTIONS
+ 
+========================= */
 
-    // Main round display
+// Main round display
 
-    function showRound(index) {
+function showRound(index) {
   const resultsDiv = document.getElementById('game-results');
   resultsDiv.innerHTML = '';
 
@@ -1928,47 +1885,47 @@ function scheduleSingleCourt(players, fixedPairs, pairPlayedSet, playedTogether,
   document.getElementById('nextBtn').disabled = false;
 }
 
-    // Resting players display
+// Resting players display
 
-    function renderRestingPlayers(data, index) {
+function renderRestingPlayers(data, index) {
 
-      const restDiv = document.createElement('div');
+  const restDiv = document.createElement('div');
 
-      restDiv.className = 'round-header';
+  restDiv.className = 'round-header';
 
-      const title = document.createElement('div');
+  const title = document.createElement('div');
 
-      title.innerText = 'Resting:';
+  title.innerText = 'Resting:';
 
-      restDiv.appendChild(title);
+  restDiv.appendChild(title);
 
-      const restBox = document.createElement('div');
+  const restBox = document.createElement('div');
 
-      restBox.className = 'rest-box';
+  restBox.className = 'rest-box';
 
-      if (data.resting.length === 0) {
+  if (data.resting.length === 0) {
 
-        const span = document.createElement('span');
+    const span = document.createElement('span');
 
-        span.innerText = 'None';
+    span.innerText = 'None';
 
-        restBox.appendChild(span);
+    restBox.appendChild(span);
 
-      } else {
+  } else {
 
-        data.resting.forEach(player => {
+    data.resting.forEach(player => {
 
-          restBox.appendChild(makeRestButton(player, data, index));
+      restBox.appendChild(makeRestButton(player, data, index));
 
-        });
+    });
 
-      }
+  }
 
-      restDiv.appendChild(restBox);
+  restDiv.appendChild(restBox);
 
-      return restDiv;
+  return restDiv;
 
-    }
+}
 
 function renderGames(data, index) {
   const wrapper = document.createElement('div');
@@ -2046,7 +2003,7 @@ function renderGames(data, index) {
 }
 
 
-    // Games display
+// Games display
 function renderGames2(data, index) {
   const wrapper = document.createElement('div');
 
@@ -2120,114 +2077,114 @@ function renderGames2(data, index) {
 
   return wrapper;
 }
-    
-    function makePlayerButton(name, teamSide, gameIndex, playerIndex, data, index) {
-      const btn = document.createElement('button');
-      btn.className = teamSide === 'L' ? 'Lplayer-btn' : 'Rplayer-btn';
-      btn.innerText = name;
 
-      const isLatestRound = index === allRounds.length - 1;
-      if (!isLatestRound) return btn; // not interactive if not latest
+function makePlayerButton(name, teamSide, gameIndex, playerIndex, data, index) {
+  const btn = document.createElement('button');
+  btn.className = teamSide === 'L' ? 'Lplayer-btn' : 'Rplayer-btn';
+  btn.innerText = name;
 
-      // ✅ Click/tap to select or swap (no long press)
-      const handleTap = (e) => {
-        e.preventDefault();
+  const isLatestRound = index === allRounds.length - 1;
+  if (!isLatestRound) return btn; // not interactive if not latest
 
-        // If another player already selected → swap between teams
-        if (window.selectedPlayer) {
-          const src = window.selectedPlayer;
+  // ✅ Click/tap to select or swap (no long press)
+  const handleTap = (e) => {
+    e.preventDefault();
 
-          if (src.from === 'rest') {
-            // Coming from rest list → move into team
-            handleDropRestToTeam(e, teamSide, gameIndex, playerIndex, data, index, src.playerName);
-          } else {
-            // Swap between team slots
-            handleDropBetweenTeams(
-              e,
-              teamSide,
-              gameIndex,
-              playerIndex,
-              data,
-              index,
-              src
-            );
-          }
+    // If another player already selected → swap between teams
+    if (window.selectedPlayer) {
+      const src = window.selectedPlayer;
 
-          // Clear selection
-          window.selectedPlayer = null;
-          document.querySelectorAll('.selected').forEach(b => b.classList.remove('selected'));
-        } else {
-          // Select this player for swap
-          window.selectedPlayer = {
-            playerName: name,
-            teamSide,
-            gameIndex,
-            playerIndex,
-            from: 'team'
-          };
-          btn.classList.add('selected');
-        }
-      };
-
-      btn.addEventListener('click', handleTap);
-      btn.addEventListener('touchstart', handleTap);
-
-      return btn;
-    }
-
-
-
-    function makeRestButton(player, data, index) {
-      const btn = document.createElement('button');
-      btn.innerText = player;
-      btn.className = 'rest-btn';
-
-      // 🎨 Color by player number
-      const match = player.match(/\.?#(\d+)/);
-      if (match) {
-        const num = parseInt(match[1]);
-        const hue = (num * 40) % 360;
-        btn.style.backgroundColor = `hsl(${hue}, 65%, 45%)`;
+      if (src.from === 'rest') {
+        // Coming from rest list → move into team
+        handleDropRestToTeam(e, teamSide, gameIndex, playerIndex, data, index, src.playerName);
       } else {
-        btn.style.backgroundColor = '#777';
+        // Swap between team slots
+        handleDropBetweenTeams(
+          e,
+          teamSide,
+          gameIndex,
+          playerIndex,
+          data,
+          index,
+          src
+        );
       }
-      btn.style.color = 'white';
 
-      const isLatestRound = index === allRounds.length - 1;
-      if (!isLatestRound) return btn; // not interactive if not latest
-
-      // ✅ Tap-to-move between Rest ↔ Team
-      const handleTap = (e) => {
-        e.preventDefault();
-
-        // If a team player selected → move from rest to team
-        if (window.selectedPlayer) {
-          const src = window.selectedPlayer;
-          if (src.from === 'team') {
-            handleDropRestToTeam(e, src.teamSide, src.gameIndex, src.playerIndex, data, index, player);
-          }
-          window.selectedPlayer = null;
-          document.querySelectorAll('.selected').forEach(b => b.classList.remove('selected'));
-        } else {
-          // Select this resting player
-          window.selectedPlayer = { playerName: player, from: 'rest' };
-          btn.classList.add('selected');
-        }
+      // Clear selection
+      window.selectedPlayer = null;
+      document.querySelectorAll('.selected').forEach(b => b.classList.remove('selected'));
+    } else {
+      // Select this player for swap
+      window.selectedPlayer = {
+        playerName: name,
+        teamSide,
+        gameIndex,
+        playerIndex,
+        from: 'team'
       };
-
-      btn.addEventListener('click', handleTap);
-      btn.addEventListener('touchstart', handleTap);
-
-      return btn;
+      btn.classList.add('selected');
     }
+  };
+
+  btn.addEventListener('click', handleTap);
+  btn.addEventListener('touchstart', handleTap);
+
+  return btn;
+}
 
 
 
-    
-    
+function makeRestButton(player, data, index) {
+  const btn = document.createElement('button');
+  btn.innerText = player;
+  btn.className = 'rest-btn';
+
+  // 🎨 Color by player number
+  const match = player.match(/\.?#(\d+)/);
+  if (match) {
+    const num = parseInt(match[1]);
+    const hue = (num * 40) % 360;
+    btn.style.backgroundColor = `hsl(${hue}, 65%, 45%)`;
+  } else {
+    btn.style.backgroundColor = '#777';
+  }
+  btn.style.color = 'white';
+
+  const isLatestRound = index === allRounds.length - 1;
+  if (!isLatestRound) return btn; // not interactive if not latest
+
+  // ✅ Tap-to-move between Rest ↔ Team
+  const handleTap = (e) => {
+    e.preventDefault();
+
+    // If a team player selected → move from rest to team
+    if (window.selectedPlayer) {
+      const src = window.selectedPlayer;
+      if (src.from === 'team') {
+        handleDropRestToTeam(e, src.teamSide, src.gameIndex, src.playerIndex, data, index, player);
+      }
+      window.selectedPlayer = null;
+      document.querySelectorAll('.selected').forEach(b => b.classList.remove('selected'));
+    } else {
+      // Select this resting player
+      window.selectedPlayer = { playerName: player, from: 'rest' };
+      btn.classList.add('selected');
+    }
+  };
+
+  btn.addEventListener('click', handleTap);
+  btn.addEventListener('touchstart', handleTap);
+
+  return btn;
+}
 
 
-    function makeTeamButton(label, teamSide, gameIndex, data, index) {
+
+
+
+
+
+function makeTeamButton(label, teamSide, gameIndex, data, index) {
   const btn = document.createElement('button');
   btn.className = 'team-btn';
   btn.innerText = label; // Visible label stays simple (Team L / Team R)
@@ -2261,40 +2218,40 @@ function renderGames2(data, index) {
   return btn;
 }
 
-    function handleDropRestToTeam(e, teamSide, gameIndex, playerIndex, data, index, movingPlayer = null) {
-      // ✅ For desktop drag
-      const drop = !movingPlayer && e.dataTransfer
-        ? JSON.parse(e.dataTransfer.getData('text/plain'))
-        : { type: 'rest', player: movingPlayer };
+function handleDropRestToTeam(e, teamSide, gameIndex, playerIndex, data, index, movingPlayer = null) {
+  // ✅ For desktop drag
+  const drop = !movingPlayer && e.dataTransfer
+    ? JSON.parse(e.dataTransfer.getData('text/plain'))
+    : { type: 'rest', player: movingPlayer };
 
-      if (drop.type !== 'rest' || !drop.player) return;
+  if (drop.type !== 'rest' || !drop.player) return;
 
-      const teamKey = teamSide === 'L' ? 'pair1' : 'pair2';
-      const restIndex = data.resting.indexOf(drop.player);
-      if (restIndex === -1) return;
+  const teamKey = teamSide === 'L' ? 'pair1' : 'pair2';
+  const restIndex = data.resting.indexOf(drop.player);
+  if (restIndex === -1) return;
 
-      const baseNewPlayer = drop.player.replace(/#\d+$/, '');
-      const oldPlayer = data.games[gameIndex][teamKey][playerIndex];
+  const baseNewPlayer = drop.player.replace(/#\d+$/, '');
+  const oldPlayer = data.games[gameIndex][teamKey][playerIndex];
 
-      data.games[gameIndex][teamKey][playerIndex] = baseNewPlayer;
+  data.games[gameIndex][teamKey][playerIndex] = baseNewPlayer;
 
-      const { restCount } = schedulerState;
+  const { restCount } = schedulerState;
 
-      if (oldPlayer && oldPlayer !== '(Empty)') {
-        const cleanOld = oldPlayer.replace(/#\d+$/, '');
-        const newCount = (restCount.get(cleanOld) || 0) + 1;
-        restCount.set(cleanOld, newCount);
-        data.resting[restIndex] = `${cleanOld}#${newCount}`;
-      } else {
-        data.resting[restIndex] = null;
-      }
+  if (oldPlayer && oldPlayer !== '(Empty)') {
+    const cleanOld = oldPlayer.replace(/#\d+$/, '');
+    const newCount = (restCount.get(cleanOld) || 0) + 1;
+    restCount.set(cleanOld, newCount);
+    data.resting[restIndex] = `${cleanOld}#${newCount}`;
+  } else {
+    data.resting[restIndex] = null;
+  }
 
-      restCount.set(baseNewPlayer, Math.max((restCount.get(baseNewPlayer) || 0) - 1, 0));
-      data.resting = data.resting.filter(p => p && p !== '(Empty)');
+  restCount.set(baseNewPlayer, Math.max((restCount.get(baseNewPlayer) || 0) - 1, 0));
+  data.resting = data.resting.filter(p => p && p !== '(Empty)');
 
-      showRound(index);
-    }
-    function handleDropBetweenTeams(e, teamSide, gameIndex, playerIndex, data, index, src) {
+  showRound(index);
+}
+function handleDropBetweenTeams(e, teamSide, gameIndex, playerIndex, data, index, src) {
   // src contains info about the player you selected first
   const { teamSide: fromTeamSide, gameIndex: fromGameIndex, playerIndex: fromPlayerIndex, playerName: player } = src;
 
@@ -2344,24 +2301,24 @@ function handleTeamSwapAcrossCourts(src, target, data, index) {
     showRound(index);
   }, 300);
 }
-    
-    /* =========================
-    
-    PAGE NAVIGATION
-    
-    ========================= */
 
-   function resetRounds() {
+/* =========================
+ 
+PAGE NAVIGATION
+ 
+========================= */
+
+function resetRounds() {
   // 1️⃣ Clear all previous rounds
   allRounds.length = 0;
   goToRounds()
   const btn = document.getElementById('goToRoundsBtn');
   btn.enabled;
 }
-      
-    function goToRounds() {
 
-       const numCourtsInput = parseInt(document.getElementById('num-courts').value);
+function goToRounds() {
+
+  const numCourtsInput = parseInt(document.getElementById('num-courts').value);
   const totalPlayers = players.length;
 
   if (!totalPlayers) {
@@ -2383,222 +2340,222 @@ function handleTeamSwapAcrossCourts(src, target, data, index) {
     return;
   }
 
-      if (allRounds.length === 0) {
+  if (allRounds.length === 0) {
 
-        initScheduler(players.map(p => p.name), numCourts, fixedPairs);
+    initScheduler(players.map(p => p.name), numCourts, fixedPairs);
 
-        allRounds = [AischedulerNextRound()];
+    allRounds = [AischedulerNextRound()];
 
-        currentRoundIndex = 0;
+    currentRoundIndex = 0;
 
-        showRound(0);
+    showRound(0);
 
-      } else {
+  } else {
 
-        const playersList = players.map(p => p.name);
+    const playersList = players.map(p => p.name);
 
-        schedulerState.players = [...playersList].reverse();
+    schedulerState.players = [...playersList].reverse();
 
-        schedulerState.numCourts = numCourts;
+    schedulerState.numCourts = numCourts;
 
-        schedulerState.fixedPairs = fixedPairs;
+    schedulerState.fixedPairs = fixedPairs;
 
-        schedulerState.fixedMap = new Map();
+    schedulerState.fixedMap = new Map();
 
-        let highestRestCount = -Infinity;
-        updateScheduler(players.map(p => p.name));
+    let highestRestCount = -Infinity;
+    updateScheduler(players.map(p => p.name));
 
-        for (const p of playersList) {
+    for (const p of playersList) {
 
-          if (schedulerState.restCount.has(p)) {
+      if (schedulerState.restCount.has(p)) {
 
-            const count = schedulerState.restCount.get(p);
+        const count = schedulerState.restCount.get(p);
 
-            if (count > highestRestCount) highestRestCount = count;
-
-          }
-
-        }
-
-        for (const p of playersList) {
-
-          if (!schedulerState.restCount.has(p)) {
-
-            schedulerState.restCount.set(p, highestRestCount + 1);
-
-          }
-
-        }
-
-        for (const p of Array.from(schedulerState.restCount.keys())) {
-
-          if (!playersList.includes(p)) schedulerState.restCount.delete(p);
-
-        }
-
-        if (currentRoundIndex + 1 <= allRounds.length) {
-
-          showRound(currentRoundIndex);
-
-        } else {
-
-          allRounds.push(AischedulerNextRound());
-
-          currentRoundIndex = currentRoundIndex + 1;
-
-          showRound(currentRoundIndex);
-
-        }
+        if (count > highestRestCount) highestRestCount = count;
 
       }
 
-      document.getElementById('page1').style.display = 'none';
+    }
 
-      document.getElementById('page2').style.display = 'block';
+    for (const p of playersList) {
 
-      isOnPage2 = true;
+      if (!schedulerState.restCount.has(p)) {
+
+        schedulerState.restCount.set(p, highestRestCount + 1);
+
+      }
 
     }
 
-    function goBack() {
+    for (const p of Array.from(schedulerState.restCount.keys())) {
 
-     // const pin = prompt("Enter 4-digit code to go back:");
+      if (!playersList.includes(p)) schedulerState.restCount.delete(p);
 
-      //if (pin === "0000") {
+    }
 
-        document.getElementById('page1').style.display = 'block';
+    if (currentRoundIndex + 1 <= allRounds.length) {
 
-        document.getElementById('page2').style.display = 'none';
+      showRound(currentRoundIndex);
 
-        isOnPage2 = false;
+    } else {
 
-const btn = document.getElementById('goToRoundsBtn');
+      allRounds.push(AischedulerNextRound());
+
+      currentRoundIndex = currentRoundIndex + 1;
+
+      showRound(currentRoundIndex);
+
+    }
+
+  }
+
+  document.getElementById('page1').style.display = 'none';
+
+  document.getElementById('page2').style.display = 'block';
+
+  isOnPage2 = true;
+
+}
+
+function goBack() {
+
+  // const pin = prompt("Enter 4-digit code to go back:");
+
+  //if (pin === "0000") {
+
+  document.getElementById('page1').style.display = 'block';
+
+  document.getElementById('page2').style.display = 'none';
+
+  isOnPage2 = false;
+
+  const btn = document.getElementById('goToRoundsBtn');
   btn.disabled = false;
-        
-      //} else if (pin !== null) alert("Incorrect PIN!");
 
-    }
+  //} else if (pin !== null) alert("Incorrect PIN!");
 
-    function nextRound() {
+}
 
-      if (currentRoundIndex + 1 < allRounds.length) {
+function nextRound() {
 
-        currentRoundIndex++;
+  if (currentRoundIndex + 1 < allRounds.length) {
 
-        showRound(currentRoundIndex);
+    currentRoundIndex++;
 
-      } else {
+    showRound(currentRoundIndex);
 
-        const newRound = AischedulerNextRound();
+  } else {
 
-        allRounds.push(newRound);
+    const newRound = AischedulerNextRound();
 
-        currentRoundIndex = allRounds.length - 1;
+    allRounds.push(newRound);
 
-        showRound(currentRoundIndex);
+    currentRoundIndex = allRounds.length - 1;
 
-      }
+    showRound(currentRoundIndex);
 
-    }
+  }
 
-    function prevRound() {
+}
 
-      if (currentRoundIndex > 0) {
+function prevRound() {
 
-        currentRoundIndex--;
+  if (currentRoundIndex > 0) {
 
-        showRound(currentRoundIndex);
+    currentRoundIndex--;
 
-      }
+    showRound(currentRoundIndex);
 
-    }
+  }
 
-
-
-    /* =========================
-    
-    MOBILE BEHAVIOR
-    
-    ========================= */
-
-    function enableTouchDrag(el) {
-      let offsetX = 0, offsetY = 0;
-      let clone = null;
-      let isDragging = false;
-
-      const startDrag = (x, y) => {
-        const rect = el.getBoundingClientRect();
-        offsetX = x - rect.left;
-        offsetY = y - rect.top;
-
-        clone = el.cloneNode(true);
-        clone.style.position = 'fixed';
-        clone.style.left = `${rect.left}px`;
-        clone.style.top = `${rect.top}px`;
-        clone.style.width = `${rect.width}px`;
-        clone.style.opacity = '0.7';
-        clone.style.zIndex = 9999;
-        clone.classList.add('dragging');
-        document.body.appendChild(clone);
-        isDragging = true;
-      };
-
-      const moveDrag = (x, y) => {
-        if (!clone) return;
-        clone.style.left = `${x - offsetX}px`;
-        clone.style.top = `${y - offsetY}px`;
-      };
-
-      const endDrag = () => {
-        if (clone) {
-          clone.remove();
-          clone = null;
-        }
-        isDragging = false;
-      };
-
-      // --- Touch Events ---
-      el.addEventListener('touchstart', e => {
-        const touch = e.touches[0];
-        startDrag(touch.clientX, touch.clientY);
-        e.preventDefault();
-      });
-
-      el.addEventListener('touchmove', e => {
-        if (!isDragging) return;
-        const touch = e.touches[0];
-        moveDrag(touch.clientX, touch.clientY);
-      });
-
-      el.addEventListener('touchend', endDrag);
-
-      // --- Mouse Events ---
-      el.addEventListener('mousedown', e => {
-        startDrag(e.clientX, e.clientY);
-        e.preventDefault();
-      });
-
-      document.addEventListener('mousemove', e => {
-        if (isDragging) moveDrag(e.clientX, e.clientY);
-      });
-
-      document.addEventListener('mouseup', endDrag);
-    }
-
-    // Warn before leaving or refreshing
-    window.addEventListener('beforeunload', function (e) {
-      // Cancel the event
-      e.preventDefault();
-      // Some browsers require setting returnValue
-      e.returnValue = '';
-      // On mobile, this usually triggers a generic "Leave site?" dialog
-    });
+}
 
 
 
-    window.onload = function() {
-    const btn = document.getElementById('goToRoundsBtn');
-    btn.disabled = (allRounds.length === 0);
+/* =========================
+ 
+MOBILE BEHAVIOR
+ 
+========================= */
+
+function enableTouchDrag(el) {
+  let offsetX = 0, offsetY = 0;
+  let clone = null;
+  let isDragging = false;
+
+  const startDrag = (x, y) => {
+    const rect = el.getBoundingClientRect();
+    offsetX = x - rect.left;
+    offsetY = y - rect.top;
+
+    clone = el.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = `${rect.left}px`;
+    clone.style.top = `${rect.top}px`;
+    clone.style.width = `${rect.width}px`;
+    clone.style.opacity = '0.7';
+    clone.style.zIndex = 9999;
+    clone.classList.add('dragging');
+    document.body.appendChild(clone);
+    isDragging = true;
   };
 
-  
+  const moveDrag = (x, y) => {
+    if (!clone) return;
+    clone.style.left = `${x - offsetX}px`;
+    clone.style.top = `${y - offsetY}px`;
+  };
+
+  const endDrag = () => {
+    if (clone) {
+      clone.remove();
+      clone = null;
+    }
+    isDragging = false;
+  };
+
+  // --- Touch Events ---
+  el.addEventListener('touchstart', e => {
+    const touch = e.touches[0];
+    startDrag(touch.clientX, touch.clientY);
+    e.preventDefault();
+  });
+
+  el.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const touch = e.touches[0];
+    moveDrag(touch.clientX, touch.clientY);
+  });
+
+  el.addEventListener('touchend', endDrag);
+
+  // --- Mouse Events ---
+  el.addEventListener('mousedown', e => {
+    startDrag(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (isDragging) moveDrag(e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mouseup', endDrag);
+}
+
+// Warn before leaving or refreshing
+window.addEventListener('beforeunload', function (e) {
+  // Cancel the event
+  e.preventDefault();
+  // Some browsers require setting returnValue
+  e.returnValue = '';
+  // On mobile, this usually triggers a generic "Leave site?" dialog
+});
+
+
+
+window.onload = function () {
+  const btn = document.getElementById('goToRoundsBtn');
+  btn.disabled = (allRounds.length === 0);
+};
+
+
