@@ -1047,48 +1047,13 @@ function AischedulerNextRound() {
 
 
 
-  let matchupScores = [];
-
-  for (let i = 0; i < allPairs.length; i++) {
-    for (let j = i + 1; j < allPairs.length; j++) {
-      const [a1, a2] = allPairs[i];
-      const [b1, b2] = allPairs[j];
-
-      // Total times these 4 players have faced each other
-      const totalScore =
-        (opponentMap.get(a1)?.get(b1) || 0) +
-        (opponentMap.get(a1)?.get(b2) || 0) +
-        (opponentMap.get(a2)?.get(b1) || 0) +
-        (opponentMap.get(a2)?.get(b2) || 0);
-
-      // Check if all matchups are completely new (no previous encounters)
-      const allNew =
-        (opponentMap.get(a1)?.get(b1) || 0) === 0 &&
-        (opponentMap.get(a1)?.get(b2) || 0) === 0 &&
-        (opponentMap.get(a2)?.get(b1) || 0) === 0 &&
-        (opponentMap.get(a2)?.get(b2) || 0) === 0;
-
-      matchupScores.push({
-        pair1: allPairs[i],
-        pair2: allPairs[j],
-        score: totalScore,
-        allNew: allNew,
-      });
-    }
-  }
+  
 
 
 
 
 
-  matchupScores.sort((a, b) => {
-    // all-new opponents have highest priority
-    if (a.allNew && !b.allNew) return -1;
-    if (!a.allNew && b.allNew) return 1;
-
-    // then by total opponent score
-    return a.score - b.score;
-  });
+  
 
   // Sort to prioritize pairs who faced least
 
@@ -1102,6 +1067,8 @@ function AischedulerNextRound() {
 
 
 
+ 
+let matchupScores = getMatchupScores(allPairs, opponentMap);
   const games = [];
 
 
@@ -1319,6 +1286,49 @@ function AischedulerNextRound() {
 
 
 }
+
+function getMatchupScores(allPairs, opponentMap) {
+  const matchupScores = [];
+
+  for (let i = 0; i < allPairs.length; i++) {
+    for (let j = i + 1; j < allPairs.length; j++) {
+      const [a1, a2] = allPairs[i];
+      const [b1, b2] = allPairs[j];
+
+      // --- Count past encounters for each of the 4 possible sub-matchups ---
+      const ab11 = opponentMap.get(a1)?.get(b1) || 0;
+      const ab12 = opponentMap.get(a1)?.get(b2) || 0;
+      const ab21 = opponentMap.get(a2)?.get(b1) || 0;
+      const ab22 = opponentMap.get(a2)?.get(b2) || 0;
+
+      // --- Total previous encounters (lower = better) ---
+      const totalScore = ab11 + ab12 + ab21 + ab22;
+
+      // --- Freshness: number of unseen sub-matchups (4 = completely new) ---
+      const freshness =
+        (ab11 === 0 ? 1 : 0) +
+        (ab12 === 0 ? 1 : 0) +
+        (ab21 === 0 ? 1 : 0) +
+        (ab22 === 0 ? 1 : 0);
+
+      matchupScores.push({
+        pair1: allPairs[i],
+        pair2: allPairs[j],
+        freshness,   // 0–4
+        totalScore,  // numeric repetition penalty
+      });
+    }
+  }
+
+  // --- Sort by freshness DESC (prefer new opponents), then by totalScore ASC ---
+  matchupScores.sort((a, b) => {
+    if (b.freshness !== a.freshness) return b.freshness - a.freshness;
+    return a.totalScore - b.totalScore;
+  });
+
+  return matchupScores;
+}
+
 
 
 
