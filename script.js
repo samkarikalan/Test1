@@ -30,6 +30,15 @@ let schedulerState = {
 };
 
 
+// Global backup object
+let backupState = {
+    restCount: null,
+    playedTogether: null,
+    pairPlayedSet: null,
+    playerScoreMap: null,
+    opponentMap: null
+};
+
 let isOnPage2 = false;
 
 
@@ -2361,10 +2370,15 @@ function goToRounds() {
     showRound(0);
 
   } else {
+        const changed =
+        JSON.stringify(schedulerState.players) !== JSON.stringify(backupState.players) ||
+        schedulerState.numCourts !== backupState.numCourts ||
+        JSON.stringify(schedulerState.fixedPairs) !== JSON.stringify(backupState.fixedPairs);
 
-    const playersList = players.map(p => p.name);
-
-    schedulerState.players = [...playersList].reverse();
+    if (changed) {
+       restoreSchedulerState()
+       const playersList = players.map(p => p.name);
+     schedulerState.players = [...playersList].reverse();
 
     schedulerState.numCourts = numCourts;
 
@@ -2402,22 +2416,17 @@ function goToRounds() {
       if (!playersList.includes(p)) schedulerState.restCount.delete(p);
 
     }
-
-    if (currentRoundIndex + 1 <= allRounds.length) {
-
-      showRound(currentRoundIndex);
-
-    } else {
-
-      allRounds.push(AischedulerNextRound());
+     
+     allRounds.push(AischedulerNextRound());
 
       currentRoundIndex = currentRoundIndex + 1;
 
       showRound(currentRoundIndex);
+    } else {
+     showRound(currentRoundIndex);
+      }
 
     }
-
-  }
 
   document.getElementById('page1').style.display = 'none';
 
@@ -2427,12 +2436,28 @@ function goToRounds() {
 
 }
 
+function restoreSchedulerState() {
+    schedulerState.restCount      = structuredClone(backupState.restCount);
+    schedulerState.playedTogether = structuredClone(backupState.playedTogether);
+    schedulerState.pairPlayedSet  = new Set(backupState.pairPlayedSet);
+    schedulerState.playerScoreMap = structuredClone(backupState.playerScoreMap);
+    schedulerState.opponentMap    = structuredClone(backupState.opponentMap);
+}
+
+function backupSchedulerState() {
+    backupState.restCount      = structuredClone(schedulerState.restCount);
+    backupState.playedTogether = structuredClone(schedulerState.playedTogether);
+    backupState.pairPlayedSet  = new Set(schedulerState.pairPlayedSet);
+    backupState.playerScoreMap = structuredClone(schedulerState.playerScoreMap);
+    backupState.opponentMap    = structuredClone(schedulerState.opponentMap);
+}
+
 function goBack() {
 
   // const pin = prompt("Enter 4-digit code to go back:");
 
   //if (pin === "0000") {
-
+  backupSchedulerState()
   document.getElementById('page1').style.display = 'block';
 
   document.getElementById('page2').style.display = 'none';
