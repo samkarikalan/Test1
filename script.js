@@ -1287,7 +1287,7 @@ let matchupScores = getMatchupScores(allPairs, opponentMap);
 
 }
 
-function getMatchupScores(allPairs, opponentMap) {
+function getMatchupScores(allPairs, opponentMap, allPlayers) {
   const matchupScores = [];
 
   for (let i = 0; i < allPairs.length; i++) {
@@ -1295,44 +1295,49 @@ function getMatchupScores(allPairs, opponentMap) {
       const [a1, a2] = allPairs[i];
       const [b1, b2] = allPairs[j];
 
-      // --- Count past encounters for each of the 4 possible sub-matchups ---
       const ab11 = opponentMap.get(a1)?.get(b1) || 0;
       const ab12 = opponentMap.get(a1)?.get(b2) || 0;
       const ab21 = opponentMap.get(a2)?.get(b1) || 0;
       const ab22 = opponentMap.get(a2)?.get(b2) || 0;
 
-      // --- Total previous encounters (lower = better) ---
-      const totalScore = ab11 + ab12 + ab21 + ab22;
-
-      // --- Freshness: number of unseen sub-matchups (4 = completely new) ---
       const freshness =
         (ab11 === 0 ? 1 : 0) +
         (ab12 === 0 ? 1 : 0) +
         (ab21 === 0 ? 1 : 0) +
         (ab22 === 0 ? 1 : 0);
 
+      const totalScore = ab11 + ab12 + ab21 + ab22;
+
+      // ---- New, critical tie-break: global opponent freshness ----
+      const globalOpponentFreshness =
+        countGlobalUnusedOpponents(a1, allPlayers, opponentMap) +
+        countGlobalUnusedOpponents(a2, allPlayers, opponentMap) +
+        countGlobalUnusedOpponents(b1, allPlayers, opponentMap) +
+        countGlobalUnusedOpponents(b2, allPlayers, opponentMap);
+
       matchupScores.push({
         pair1: allPairs[i],
         pair2: allPairs[j],
-        freshness,   // 0–4
-        totalScore,  // numeric repetition penalty
+        freshness,
+        totalScore,
+        globalOpponentFreshness
       });
     }
   }
 
-  // --- Sort by freshness DESC (prefer new opponents), then by totalScore ASC ---
+  // Sort: your original rules + new tie-breaker
   matchupScores.sort((a, b) => {
     if (b.freshness !== a.freshness) return b.freshness - a.freshness;
+
+    // NEW: global tie-breaker → produces your perfect result
+    if (b.globalOpponentFreshness !== a.globalOpponentFreshness)
+      return b.globalOpponentFreshness - a.globalOpponentFreshness;
+
     return a.totalScore - b.totalScore;
   });
 
   return matchupScores;
 }
-
-
-
-
-
 
 
 function AischedulerNextRoundold() {
