@@ -1287,7 +1287,7 @@ let matchupScores = getMatchupScores(allPairs, opponentMap);
 
 }
 
-function getMatchupScores(allPairs, opponentMap, allPlayers) {
+function getMatchupScores(allPairs, opponentMap) {
   const matchupScores = [];
 
   for (let i = 0; i < allPairs.length; i++) {
@@ -1295,45 +1295,49 @@ function getMatchupScores(allPairs, opponentMap, allPlayers) {
       const [a1, a2] = allPairs[i];
       const [b1, b2] = allPairs[j];
 
+      // --- Count past encounters for each of the 4 possible sub-matchups ---
       const ab11 = opponentMap.get(a1)?.get(b1) || 0;
       const ab12 = opponentMap.get(a1)?.get(b2) || 0;
       const ab21 = opponentMap.get(a2)?.get(b1) || 0;
       const ab22 = opponentMap.get(a2)?.get(b2) || 0;
 
+      // --- Total previous encounters (lower = better) ---
+      const totalScore = ab11 + ab12 + ab21 + ab22;
+
+      // --- Freshness: number of unseen sub-matchups (4 = completely new) ---
       const freshness =
         (ab11 === 0 ? 1 : 0) +
         (ab12 === 0 ? 1 : 0) +
         (ab21 === 0 ? 1 : 0) +
         (ab22 === 0 ? 1 : 0);
 
-      const totalScore = ab11 + ab12 + ab21 + ab22;
-
-      // ---- New, critical tie-break: global opponent freshness ----
-      const globalOpponentFreshness =
-        countGlobalUnusedOpponents(a1, allPlayers, opponentMap) +
-        countGlobalUnusedOpponents(a2, allPlayers, opponentMap) +
-        countGlobalUnusedOpponents(b1, allPlayers, opponentMap) +
-        countGlobalUnusedOpponents(b2, allPlayers, opponentMap);
+      // --- Store individual player freshness for tie-breaker ---
+      const opponentFreshness = {
+        a1: (ab11 === 0 ? 1 : 0) + (ab12 === 0 ? 1 : 0),
+        a2: (ab21 === 0 ? 1 : 0) + (ab22 === 0 ? 1 : 0),
+        b1: (ab11 === 0 ? 1 : 0) + (ab21 === 0 ? 1 : 0),
+        b2: (ab12 === 0 ? 1 : 0) + (ab22 === 0 ? 1 : 0),
+      };
 
       matchupScores.push({
         pair1: allPairs[i],
         pair2: allPairs[j],
-        freshness,
-        totalScore,
-        globalOpponentFreshness
+        freshness,         // 0–4
+        totalScore,        // numeric repetition penalty
+        opponentFreshness, // for tie-breaking only
       });
     }
   }
 
-  // Sort: your original rules + new tie-breaker
+  // --- Sort by freshness DESC, then totalScore ASC, then opponent freshness DESC ---
   matchupScores.sort((a, b) => {
     if (b.freshness !== a.freshness) return b.freshness - a.freshness;
+    if (a.totalScore !== b.totalScore) return a.totalScore - b.totalScore;
 
-    // NEW: global tie-breaker → produces your perfect result
-    if (b.globalOpponentFreshness !== a.globalOpponentFreshness)
-      return b.globalOpponentFreshness - a.globalOpponentFreshness;
-
-    return a.totalScore - b.totalScore;
+    // Tie-breaker: sum of all 4 individual opponent freshness values
+    const aSum = a.opponentFreshness.a1 + a.opponentFreshness.a2 + a.opponentFreshness.b1 + a.opponentFreshness.b2;
+    const bSum = b.opponentFreshness.a1 + b.opponentFreshness.a2 + b.opponentFreshness.b1 + b.opponentFreshness.b2;
+    return bSum - aSum; // prefer higher sum of unseen opponents
   });
 
   return matchupScores;
