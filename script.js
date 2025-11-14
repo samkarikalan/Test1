@@ -2376,7 +2376,7 @@ function goToRounds() {
         JSON.stringify(schedulerState.fixedPairs) !== JSON.stringify(backupState.fixedPairs);
 
     if (changed) {
-       restoreSchedulerState()
+       restoreSchedulerState();
        const playersList = players.map(p => p.name);
      schedulerState.players = [...playersList].reverse();
 
