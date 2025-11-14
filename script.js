@@ -2416,10 +2416,11 @@ function goToRounds() {
       if (!playersList.includes(p)) schedulerState.restCount.delete(p);
 
     }
-     allRounds.pop();
-     allRounds.push(AischedulerNextRound());
+     //allRounds.pop();
+     schedulerState.roundIndex = allRounds.length - 1;
+     allRounds[allRounds.length - 1]=(AischedulerNextRound();
 
-      currentRoundIndex = currentRoundIndex + 1;
+      //currentRoundIndex = currentRoundIndex + 1;
 
       showRound(currentRoundIndex);
     } else {
