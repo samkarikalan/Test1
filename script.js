@@ -2416,7 +2416,7 @@ function goToRounds() {
       if (!playersList.includes(p)) schedulerState.restCount.delete(p);
 
     }
-     
+     allRounds.pop();
      allRounds.push(AischedulerNextRound());
 
       currentRoundIndex = currentRoundIndex + 1;
